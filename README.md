@@ -81,7 +81,7 @@ AI 分析成功后，语义名称会自动替代 `{name}` 的输入值，因此�
 日常开发请先运行 `npm run watch`，再从项目根目录导入 `manifest.json`。执行 `npm run build` 后，交付版本应导入版本目录中的清单，例如：
 
 ```text
-dist/dev-mode-asset-renamer-local_1.8.1/
+dist/dev-mode-asset-renamer-local_1.3.0/
 ├─ manifest.json
 ├─ dist/
 │  ├─ code.js
