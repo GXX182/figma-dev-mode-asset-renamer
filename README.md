@@ -11,6 +11,7 @@
 - AI 分析会显示图片准备、当前批次、等待时间和已命名数量；每批结果即时写入预览，并支持中途取消和保留成功结果。
 - 支持 Gemini 原生、OpenAI 兼容（Chat Completions/Responses）和 Anthropic 兼容接口，并可根据 Base URL 自动识别协议。
 - 支持获取模型、管理多个 AI 服务、编辑或导入提示词，以及上传 `.md` / `.txt` Skill。
+- 主面板可直接切换已配置的 AI 服务；每个服务独立保存 Base URL、API Key、接口格式和模型。
 - 内置本地 Node 转发服务，插件运行前自动启动并通过 `127.0.0.1:7879` 请求，解决不支持 Figma CORS 的兼容接口。
 - 支持命名变量：`{name}`、`{ai}`、`{index}`、`{parent}`、`{page}`、`{type}`、`{width}`、`{height}`、`{format}`、`{scale}`、`{date}`。
 - 同名文件自动追加 `-2`、`-3`，并按 Windows 不区分大小写的规则检测重复。
@@ -31,7 +32,7 @@
 
 1. 在画布中选中需要下载的一个或多个图片/图层。
 2. 选择导出格式、倍率和命名模板。
-3. 如需 AI 命名，在“AI 语义命名”右上角打开设置，配置 Base URL、API Key、模型和命名策略。
+3. 如需 AI 命名，在“AI 语义命名”右上角打开设置，为每个服务配置 Base URL、API Key、接口格式和模型；之后可在主面板切换服务。
 4. 点击“AI 分析当前选择”，在预览区确认或清除语义文件名。
 5. 点击“打包下载”，解压 ZIP 后即可得到重命名完成的资源。
 
@@ -58,7 +59,7 @@ AI 分析成功后，语义名称会自动替代 `{name}` 的输入值，因此�
 日常开发请先运行 `npm run watch`，再从项目根目录导入 `manifest.json`。执行 `npm run build` 后，交付版本应导入版本目录中的清单，例如：
 
 ```text
-dist/dev-mode-asset-renamer-local_1.7.0/
+dist/dev-mode-asset-renamer-local_1.8.0/
 ├─ manifest.json
 ├─ dist/
 │  ├─ code.js

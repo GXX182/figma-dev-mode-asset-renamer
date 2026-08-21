@@ -1065,9 +1065,9 @@
             </div>
             <div class="grid-2">
               <div class="field">
-                <label for="ai-model-select">模型</label>
-                <select id="ai-model-select">
-                  <option value="">请先配置模型</option>
+                <label for="ai-service-select">服务</label>
+                <select id="ai-service-select">
+                  <option value="">请先配置服务</option>
                 </select>
               </div>
               <div class="field">
@@ -2164,7 +2164,7 @@
   var exportButton = element("export-button");
   var resetButton = element("reset-button");
   var status = element("status");
-  var aiModelSelect = element("ai-model-select");
+  var aiServiceSelect = element("ai-service-select");
   var aiStrategySelect = element("ai-strategy-select");
   var aiProviderSummary = element("ai-provider-summary");
   var aiAnalyzeButton = element("ai-analyze-button");
@@ -2371,22 +2371,21 @@
   function renderAiMainControls() {
     const settings = state.aiSettings;
     const provider = activeAiProvider();
-    aiModelSelect.replaceChildren();
-    if (!provider) {
-      aiModelSelect.append(option("", "\u8BF7\u5148\u914D\u7F6E\u6A21\u578B"));
-      aiModelSelect.disabled = true;
+    aiServiceSelect.replaceChildren();
+    if (!settings || settings.providers.length === 0 || !provider) {
+      aiServiceSelect.append(option("", "\u8BF7\u5148\u914D\u7F6E\u670D\u52A1"));
+      aiServiceSelect.disabled = true;
       aiProviderSummary.textContent = "\u5C1A\u672A\u914D\u7F6E AI \u670D\u52A1";
     } else {
-      const models = state.modelOptions[provider.id] || [];
-      const knownModels = models.some((model) => model.id === provider.model) ? models : provider.model ? [{ id: provider.model, name: provider.model }, ...models] : models;
-      if (knownModels.length === 0) {
-        aiModelSelect.append(option(provider.model, provider.model || "\u8BF7\u5230\u8BBE\u7F6E\u4E2D\u83B7\u53D6\u6A21\u578B"));
-      } else {
-        for (const model of knownModels) aiModelSelect.append(option(model.id, model.name));
+      for (const service of settings.providers) {
+        aiServiceSelect.append(option(service.id, service.name));
       }
-      aiModelSelect.value = provider.model;
-      aiModelSelect.disabled = state.aiBusy || !provider.baseUrl;
-      aiProviderSummary.textContent = `${provider.name} \xB7 ${resolvedFormatLabel(provider.resolvedApiFormat)}${provider.keyConfigured ? "" : " \xB7 \u672A\u4FDD\u5B58 API Key"}`;
+      aiServiceSelect.value = provider.id;
+      aiServiceSelect.disabled = state.busy || state.aiBusy;
+      const modelSummary = provider.model ? `\u6A21\u578B\uFF1A${provider.model}` : "\u6A21\u578B\uFF1A\u672A\u914D\u7F6E";
+      const baseUrlWarning = provider.baseUrl ? "" : " \xB7 \u672A\u914D\u7F6E Base URL";
+      const keyWarning = provider.keyConfigured ? "" : " \xB7 \u672A\u4FDD\u5B58 API Key";
+      aiProviderSummary.textContent = `${modelSummary} \xB7 ${resolvedFormatLabel(provider.resolvedApiFormat)}${baseUrlWarning}${keyWarning}`;
     }
     aiStrategySelect.replaceChildren();
     if (!settings) {
@@ -2950,11 +2949,14 @@
     persistAiSettings();
     renderSkillEditor(skill.id);
   });
-  aiModelSelect.addEventListener("change", () => {
-    const provider = activeAiProvider();
-    if (!provider) return;
-    provider.model = aiModelSelect.value;
+  aiServiceSelect.addEventListener("change", () => {
+    const settings = state.aiSettings;
+    const provider = settings?.providers.find((item) => item.id === aiServiceSelect.value);
+    if (!settings || !provider) return;
+    settings.activeProviderId = provider.id;
+    renderAiMainControls();
     persistAiSettings();
+    setStatus(`\u5DF2\u5207\u6362\u5230 ${provider.name}${provider.model ? ` \xB7 ${provider.model}` : ""}`, "success");
   });
   aiStrategySelect.addEventListener("change", () => {
     if (!state.aiSettings) return;

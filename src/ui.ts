@@ -104,7 +104,7 @@ const templateError = element<HTMLParagraphElement>("template-error");
 const exportButton = element<HTMLButtonElement>("export-button");
 const resetButton = element<HTMLButtonElement>("reset-button");
 const status = element<HTMLDivElement>("status");
-const aiModelSelect = element<HTMLSelectElement>("ai-model-select");
+const aiServiceSelect = element<HTMLSelectElement>("ai-service-select");
 const aiStrategySelect = element<HTMLSelectElement>("ai-strategy-select");
 const aiProviderSummary = element<HTMLParagraphElement>("ai-provider-summary");
 const aiAnalyzeButton = element<HTMLButtonElement>("ai-analyze-button");
@@ -356,24 +356,21 @@ function persistAiSettings(): void {
 function renderAiMainControls(): void {
   const settings = state.aiSettings;
   const provider = activeAiProvider();
-  aiModelSelect.replaceChildren();
-  if (!provider) {
-    aiModelSelect.append(option("", "请先配置模型"));
-    aiModelSelect.disabled = true;
+  aiServiceSelect.replaceChildren();
+  if (!settings || settings.providers.length === 0 || !provider) {
+    aiServiceSelect.append(option("", "请先配置服务"));
+    aiServiceSelect.disabled = true;
     aiProviderSummary.textContent = "尚未配置 AI 服务";
   } else {
-    const models = state.modelOptions[provider.id] || [];
-    const knownModels = models.some((model) => model.id === provider.model)
-      ? models
-      : provider.model ? [{ id: provider.model, name: provider.model }, ...models] : models;
-    if (knownModels.length === 0) {
-      aiModelSelect.append(option(provider.model, provider.model || "请到设置中获取模型"));
-    } else {
-      for (const model of knownModels) aiModelSelect.append(option(model.id, model.name));
+    for (const service of settings.providers) {
+      aiServiceSelect.append(option(service.id, service.name));
     }
-    aiModelSelect.value = provider.model;
-    aiModelSelect.disabled = state.aiBusy || !provider.baseUrl;
-    aiProviderSummary.textContent = `${provider.name} · ${resolvedFormatLabel(provider.resolvedApiFormat)}${provider.keyConfigured ? "" : " · 未保存 API Key"}`;
+    aiServiceSelect.value = provider.id;
+    aiServiceSelect.disabled = state.busy || state.aiBusy;
+    const modelSummary = provider.model ? `模型：${provider.model}` : "模型：未配置";
+    const baseUrlWarning = provider.baseUrl ? "" : " · 未配置 Base URL";
+    const keyWarning = provider.keyConfigured ? "" : " · 未保存 API Key";
+    aiProviderSummary.textContent = `${modelSummary} · ${resolvedFormatLabel(provider.resolvedApiFormat)}${baseUrlWarning}${keyWarning}`;
   }
 
   aiStrategySelect.replaceChildren();
@@ -1015,11 +1012,14 @@ aiSaveSkill.addEventListener("click", () => {
   renderSkillEditor(skill.id);
 });
 
-aiModelSelect.addEventListener("change", () => {
-  const provider = activeAiProvider();
-  if (!provider) return;
-  provider.model = aiModelSelect.value;
+aiServiceSelect.addEventListener("change", () => {
+  const settings = state.aiSettings;
+  const provider = settings?.providers.find((item) => item.id === aiServiceSelect.value);
+  if (!settings || !provider) return;
+  settings.activeProviderId = provider.id;
+  renderAiMainControls();
   persistAiSettings();
+  setStatus(`已切换到 ${provider.name}${provider.model ? ` · ${provider.model}` : ""}`, "success");
 });
 
 aiStrategySelect.addEventListener("change", () => {
