@@ -1085,7 +1085,7 @@
             <span class="helper" id="preview-summary">0 个文件</span>
           </div>
           <div class="preview-toolbar">
-            <button class="ai-analyze-button" id="ai-analyze-button" type="button">✦ AI 分析当前选择</button>
+            <button class="ai-analyze-button" id="ai-analyze-button" type="button" hidden>✦ AI 分析当前选择</button>
             <button class="icon-button" id="ai-clear-button" type="button" title="清除 AI 结果" aria-label="清除 AI 结果" hidden>↺</button>
           </div>
           <section class="ai-progress" id="ai-progress" data-phase="starting" role="status" aria-live="polite" hidden>
@@ -2345,6 +2345,9 @@
     if (!settings) return null;
     return settings.providers.find((provider) => provider.id === settings.activeProviderId) || settings.providers[0] || null;
   }
+  function hasConfiguredAiProvider() {
+    return state.aiSettings?.providers.some((provider) => Boolean(provider.baseUrl.trim()) && Boolean(provider.model.trim()) && provider.keyConfigured) || false;
+  }
   function option(value, label) {
     const item = document.createElement("option");
     item.value = value;
@@ -2411,6 +2414,7 @@
     }
     const suggestionCount = Object.keys(state.aiSuggestions).length;
     const cancelling = state.aiProgress?.phase === "cancelling";
+    aiAnalyzeButton.hidden = !hasConfiguredAiProvider();
     aiAnalyzeButton.disabled = state.busy || cancelling || !state.aiBusy && state.items.length === 0;
     aiAnalyzeButton.classList.toggle("is-cancel", state.aiBusy);
     aiAnalyzeButton.textContent = state.aiBusy ? cancelling ? "\u6B63\u5728\u505C\u6B62\u2026" : "\u505C\u6B62\u672C\u6B21\u5206\u6790" : suggestionCount > 0 ? "\u2726 \u91CD\u65B0\u5206\u6790\u5F53\u524D\u9009\u62E9" : "\u2726 AI \u5206\u6790\u5F53\u524D\u9009\u62E9";
@@ -2660,6 +2664,7 @@
     });
   }
   function renderTokens() {
+    tokenList.replaceChildren();
     const labels = {
       name: "\u56FE\u5C42\u540D",
       ai: "AI \u8BED\u4E49\u540D",
@@ -2674,6 +2679,7 @@
       date: "\u65E5\u671F"
     };
     for (const token of SUPPORTED_TOKENS) {
+      if (token === "ai" && !hasConfiguredAiProvider()) continue;
       const button = document.createElement("button");
       button.type = "button";
       button.className = "token";
@@ -3083,6 +3089,7 @@
     if (message.type === "ai-settings") {
       state.aiSettings = message.settings;
       state.apiKeyDrafts = {};
+      renderTokens();
       renderAiSettingsEditors();
       render();
       if (!aiSettingsView.hidden) aiConnectionResult.textContent = "\u670D\u52A1\u914D\u7F6E\u5DF2\u4FDD\u5B58\u3002";

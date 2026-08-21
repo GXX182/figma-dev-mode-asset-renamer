@@ -327,6 +327,14 @@ function activeAiProvider(): AiProviderProfileView | null {
     || null;
 }
 
+function hasConfiguredAiProvider(): boolean {
+  return state.aiSettings?.providers.some((provider) => (
+    Boolean(provider.baseUrl.trim())
+    && Boolean(provider.model.trim())
+    && provider.keyConfigured
+  )) || false;
+}
+
 function option(value: string, label: string): HTMLOptionElement {
   const item = document.createElement("option");
   item.value = value;
@@ -398,6 +406,7 @@ function renderAiMainControls(): void {
 
   const suggestionCount = Object.keys(state.aiSuggestions).length;
   const cancelling = state.aiProgress?.phase === "cancelling";
+  aiAnalyzeButton.hidden = !hasConfiguredAiProvider();
   aiAnalyzeButton.disabled = state.busy || cancelling || (!state.aiBusy && state.items.length === 0);
   aiAnalyzeButton.classList.toggle("is-cancel", state.aiBusy);
   aiAnalyzeButton.textContent = state.aiBusy
@@ -696,6 +705,7 @@ function insertToken(token: string): void {
 }
 
 function renderTokens(): void {
+  tokenList.replaceChildren();
   const labels: Record<string, string> = {
     name: "图层名",
     ai: "AI 语义名",
@@ -710,6 +720,7 @@ function renderTokens(): void {
     date: "日期"
   };
   for (const token of SUPPORTED_TOKENS) {
+    if (token === "ai" && !hasConfiguredAiProvider()) continue;
     const button = document.createElement("button");
     button.type = "button";
     button.className = "token";
@@ -1159,6 +1170,7 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
   if (message.type === "ai-settings") {
     state.aiSettings = message.settings;
     state.apiKeyDrafts = {};
+    renderTokens();
     renderAiSettingsEditors();
     render();
     if (!aiSettingsView.hidden) aiConnectionResult.textContent = "服务配置已保存。";
