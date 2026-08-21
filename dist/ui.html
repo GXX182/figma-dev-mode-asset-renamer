@@ -187,6 +187,24 @@
         cursor: pointer;
       }
 
+      .icon-button {
+        display: inline-grid;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--surface);
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .icon-button:hover:not(:disabled) {
+        border-color: var(--brand);
+        color: var(--brand);
+      }
+
       .grid-2 {
         display: grid;
         gap: 8px;
@@ -205,6 +223,7 @@
 
       input[type="text"],
       input[type="number"],
+      input[type="password"],
       select {
         width: 100%;
         height: 32px;
@@ -216,8 +235,22 @@
       }
 
       input:hover,
+      textarea:hover,
       select:hover {
         border-color: var(--muted);
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 180px;
+        padding: 8px;
+        resize: vertical;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        line-height: 18px;
       }
 
       .scale-group {
@@ -295,6 +328,52 @@
         min-height: 220px;
       }
 
+      .ai-section {
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+
+      .ai-section .grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .ai-provider-summary {
+        min-height: 15px;
+      }
+
+      .preview-toolbar {
+        display: flex;
+        gap: 6px;
+      }
+
+      .ai-analyze-button {
+        display: flex;
+        min-height: 34px;
+        flex: 1 1 auto;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid color-mix(in srgb, var(--brand) 55%, var(--border));
+        border-radius: 7px;
+        background: color-mix(in srgb, var(--brand) 9%, var(--bg));
+        color: var(--brand);
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .ai-analyze-button:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--brand) 15%, var(--bg));
+      }
+
+      .ai-badge {
+        margin-left: 5px;
+        color: var(--brand);
+        font-size: 9px;
+        font-weight: 600;
+      }
+
       .preview-list {
         display: flex;
         min-height: 120px;
@@ -334,6 +413,12 @@
 
       .preview-renamed {
         font-weight: 500;
+      }
+
+      .preview-renamed.is-editable {
+        cursor: text;
+        text-decoration: underline dotted color-mix(in srgb, var(--brand) 48%, transparent);
+        text-underline-offset: 3px;
       }
 
       .empty-state,
@@ -394,6 +479,116 @@
 
       .primary-button:hover:not(:disabled) {
         background: var(--brand-hover);
+      }
+
+      .settings-view {
+        position: fixed;
+        z-index: 20;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+      }
+
+      .settings-view[hidden],
+      [hidden] {
+        display: none !important;
+      }
+
+      .settings-header {
+        display: flex;
+        min-height: 48px;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .settings-header h2 {
+        flex: 1 1 auto;
+        font-size: 13px;
+      }
+
+      .settings-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3px;
+        margin: 10px 12px 0;
+        padding: 3px;
+        border-radius: 7px;
+        background: var(--surface);
+      }
+
+      .settings-tab {
+        min-height: 29px;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .settings-tab.is-active {
+        background: var(--bg);
+        color: var(--text);
+        box-shadow: 0 1px 3px color-mix(in srgb, var(--text) 12%, transparent);
+        font-weight: 600;
+      }
+
+      .settings-content {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        padding: 12px;
+      }
+
+      .settings-panel {
+        display: flex;
+        max-width: 680px;
+        flex-direction: column;
+        gap: 12px;
+        margin: 0 auto;
+      }
+
+      .settings-actions,
+      .library-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .secondary-button {
+        min-height: 32px;
+        padding: 0 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .secondary-button:hover:not(:disabled) {
+        border-color: var(--brand);
+        color: var(--brand);
+      }
+
+      .settings-save {
+        min-height: 34px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 7px;
+        background: var(--brand);
+        color: var(--brand-text);
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .connection-result {
+        padding: 8px 10px;
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--muted);
+        line-height: 17px;
       }
 
       @media (min-width: 560px) {
@@ -486,9 +681,35 @@
         </section>
 
         <section class="preview-panel">
+          <section class="section ai-section">
+            <div class="section-heading">
+              <h2>AI 语义命名</h2>
+              <button class="icon-button" id="ai-settings-button" type="button" title="AI 设置" aria-label="打开 AI 设置">⚙</button>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="ai-model-select">模型</label>
+                <select id="ai-model-select">
+                  <option value="">请先配置模型</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="ai-strategy-select">命名策略</label>
+                <select id="ai-strategy-select">
+                  <option value="">通用素材命名</option>
+                </select>
+              </div>
+            </div>
+            <p class="helper ai-provider-summary" id="ai-provider-summary">尚未配置 AI 服务</p>
+          </section>
+
           <div class="section-heading">
             <h2>文件名预览</h2>
             <span class="helper" id="preview-summary">0 个文件</span>
+          </div>
+          <div class="preview-toolbar">
+            <button class="ai-analyze-button" id="ai-analyze-button" type="button">✦ AI 分析当前选择</button>
+            <button class="icon-button" id="ai-clear-button" type="button" title="清除 AI 结果" aria-label="清除 AI 结果" hidden>↺</button>
           </div>
           <div class="preview-list" id="preview-list"></div>
         </section>
@@ -499,6 +720,111 @@
         <button class="primary-button" id="export-button" type="button" disabled>打包下载</button>
       </footer>
     </main>
+
+    <section class="settings-view" id="ai-settings-view" aria-label="AI 设置" hidden>
+      <header class="settings-header">
+        <button class="icon-button" id="ai-settings-back" type="button" aria-label="返回">←</button>
+        <h2>AI 设置</h2>
+      </header>
+
+      <nav class="settings-tabs" aria-label="AI 设置分类">
+        <button class="settings-tab is-active" type="button" data-settings-tab="connection">服务配置</button>
+        <button class="settings-tab" type="button" data-settings-tab="prompts">提示词模板</button>
+        <button class="settings-tab" type="button" data-settings-tab="skills">Skill</button>
+      </nav>
+
+      <div class="settings-content">
+        <section class="settings-panel" data-settings-panel="connection">
+          <div class="field">
+            <label for="ai-provider-select">AI 服务</label>
+            <div class="grid-2">
+              <select id="ai-provider-select"></select>
+              <div class="settings-actions">
+                <button class="secondary-button" id="ai-provider-add" type="button">新增</button>
+                <button class="secondary-button" id="ai-provider-delete" type="button">删除</button>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="ai-provider-name">服务名称</label>
+            <input id="ai-provider-name" type="text" maxlength="80" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="ai-api-format">接口格式</label>
+            <select id="ai-api-format">
+              <option value="auto">自动识别（推荐）</option>
+              <option value="gemini-native">Gemini 原生</option>
+              <option value="openai-compatible">OpenAI 兼容</option>
+              <option value="anthropic-compatible">Anthropic 兼容</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ai-base-url">Base URL</label>
+            <input id="ai-base-url" type="text" autocomplete="off" spellcheck="false" placeholder="https://api.example.com/v1" />
+          </div>
+          <div class="field">
+            <label for="ai-api-key">API Key</label>
+            <input id="ai-api-key" type="password" autocomplete="off" placeholder="输入新 Key；留空则保留已保存的 Key" />
+            <p class="helper" id="ai-key-helper">完整 Key 保存后不会重新显示。</p>
+          </div>
+          <div class="connection-result" id="ai-connection-result">填写连接信息后获取模型。</div>
+          <div class="settings-actions">
+            <button class="secondary-button" id="ai-fetch-models" type="button">测试并获取模型</button>
+          </div>
+          <div class="field">
+            <label for="ai-settings-model">视觉模型</label>
+            <select id="ai-settings-model">
+              <option value="">请先获取模型</option>
+            </select>
+            <input id="ai-manual-model" type="text" autocomplete="off" placeholder="模型列表不可用时，可手动填写模型 ID" />
+          </div>
+          <button class="settings-save" id="ai-save-connection" type="button">保存服务配置</button>
+        </section>
+
+        <section class="settings-panel" data-settings-panel="prompts" hidden>
+          <div class="field">
+            <label for="ai-prompt-library">提示词模板</label>
+            <select id="ai-prompt-library"></select>
+          </div>
+          <div class="library-toolbar">
+            <button class="secondary-button" id="ai-prompt-new" type="button">新建</button>
+            <button class="secondary-button" id="ai-prompt-import" type="button">导入</button>
+            <button class="secondary-button" id="ai-prompt-delete" type="button">删除</button>
+            <input id="ai-prompt-file" type="file" accept=".txt,.md,.json,text/plain,application/json" hidden />
+          </div>
+          <div class="field">
+            <label for="ai-prompt-name">名称</label>
+            <input id="ai-prompt-name" type="text" maxlength="80" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="ai-prompt-content">提示词内容</label>
+            <textarea id="ai-prompt-content" maxlength="20000" spellcheck="false"></textarea>
+          </div>
+          <button class="settings-save" id="ai-save-prompt" type="button">保存提示词</button>
+        </section>
+
+        <section class="settings-panel" data-settings-panel="skills" hidden>
+          <div class="field">
+            <label for="ai-skill-library">Skill</label>
+            <select id="ai-skill-library"></select>
+          </div>
+          <div class="library-toolbar">
+            <button class="secondary-button" id="ai-skill-upload" type="button">上传 .md / .txt</button>
+            <button class="secondary-button" id="ai-skill-delete" type="button">删除</button>
+            <input id="ai-skill-file" type="file" accept=".md,.txt,text/markdown,text/plain" hidden />
+          </div>
+          <div class="field">
+            <label for="ai-skill-name">名称</label>
+            <input id="ai-skill-name" type="text" maxlength="100" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="ai-skill-content">规则内容</label>
+            <textarea id="ai-skill-content" maxlength="64000" spellcheck="false"></textarea>
+          </div>
+          <button class="settings-save" id="ai-save-skill" type="button">保存 Skill</button>
+        </section>
+      </div>
+    </section>
     <script>
 "use strict";
 (() => {
@@ -513,6 +839,7 @@
   };
   var SUPPORTED_TOKENS = [
     "name",
+    "ai",
     "index",
     "parent",
     "page",
@@ -579,7 +906,7 @@
     const availableLength = Math.max(1, MAX_STEM_LENGTH - Array.from(suffix).length);
     return `${truncate(stem, availableLength).replace(/[. ]+$/g, "")}${suffix}`;
   }
-  function buildDownloadNames(items, config, format, scale, now = /* @__PURE__ */ new Date()) {
+  function buildDownloadNames(items, config, format, scale, now = /* @__PURE__ */ new Date(), semanticNames = {}) {
     const template = config.template.trim() || DEFAULT_NAMING_CONFIG.template;
     const startIndex = Number.isFinite(config.startIndex) ? Math.max(0, Math.floor(config.startIndex)) : 1;
     const padding = Number.isFinite(config.indexPadding) ? Math.min(8, Math.max(1, Math.floor(config.indexPadding))) : 2;
@@ -587,8 +914,11 @@
     const usedNames = /* @__PURE__ */ new Set();
     return items.map((item, position) => {
       const index = String(startIndex + position).padStart(padding, "0");
+      const semanticName = semanticNames[item.id]?.trim();
+      const sourceName = semanticName || item.name;
       const values = {
-        name: stripKnownExtension(item.name) || "asset",
+        name: stripKnownExtension(sourceName) || "asset",
+        ai: stripKnownExtension(semanticName || item.name) || "asset",
         index,
         parent: item.parentName || "root",
         page: item.pageName || "page",
@@ -1354,7 +1684,12 @@
     items: [],
     ignoredCount: 0,
     busy: false,
-    config: { ...defaultConfig }
+    config: { ...defaultConfig },
+    aiSettings: null,
+    aiBusy: false,
+    aiSuggestions: {},
+    modelOptions: {},
+    apiKeyDrafts: {}
   };
   function element(id) {
     const found = document.getElementById(id);
@@ -1377,6 +1712,42 @@
   var exportButton = element("export-button");
   var resetButton = element("reset-button");
   var status = element("status");
+  var aiModelSelect = element("ai-model-select");
+  var aiStrategySelect = element("ai-strategy-select");
+  var aiProviderSummary = element("ai-provider-summary");
+  var aiAnalyzeButton = element("ai-analyze-button");
+  var aiClearButton = element("ai-clear-button");
+  var aiSettingsButton = element("ai-settings-button");
+  var aiSettingsView = element("ai-settings-view");
+  var aiSettingsBack = element("ai-settings-back");
+  var aiProviderSelect = element("ai-provider-select");
+  var aiProviderAdd = element("ai-provider-add");
+  var aiProviderDelete = element("ai-provider-delete");
+  var aiProviderName = element("ai-provider-name");
+  var aiApiFormat = element("ai-api-format");
+  var aiBaseUrl = element("ai-base-url");
+  var aiApiKey = element("ai-api-key");
+  var aiKeyHelper = element("ai-key-helper");
+  var aiConnectionResult = element("ai-connection-result");
+  var aiFetchModels = element("ai-fetch-models");
+  var aiSettingsModel = element("ai-settings-model");
+  var aiManualModel = element("ai-manual-model");
+  var aiSaveConnection = element("ai-save-connection");
+  var aiPromptLibrary = element("ai-prompt-library");
+  var aiPromptNew = element("ai-prompt-new");
+  var aiPromptImport = element("ai-prompt-import");
+  var aiPromptDelete = element("ai-prompt-delete");
+  var aiPromptFile = element("ai-prompt-file");
+  var aiPromptName = element("ai-prompt-name");
+  var aiPromptContent = element("ai-prompt-content");
+  var aiSavePrompt = element("ai-save-prompt");
+  var aiSkillLibrary = element("ai-skill-library");
+  var aiSkillUpload = element("ai-skill-upload");
+  var aiSkillDelete = element("ai-skill-delete");
+  var aiSkillFile = element("ai-skill-file");
+  var aiSkillName = element("ai-skill-name");
+  var aiSkillContent = element("ai-skill-content");
+  var aiSaveSkill = element("ai-save-skill");
   function saveConfig() {
     postMessage2({ type: "save-settings", config: state.config });
   }
@@ -1415,6 +1786,145 @@
     status.textContent = message;
     status.dataset.tone = tone;
   }
+  function activeAiProvider() {
+    const settings = state.aiSettings;
+    if (!settings) return null;
+    return settings.providers.find((provider) => provider.id === settings.activeProviderId) || settings.providers[0] || null;
+  }
+  function option(value, label) {
+    const item = document.createElement("option");
+    item.value = value;
+    item.textContent = label;
+    return item;
+  }
+  function resolvedFormatLabel(format) {
+    if (format === "gemini-native") return "Gemini \u539F\u751F";
+    if (format === "anthropic-compatible") return "Anthropic \u517C\u5BB9";
+    if (format === "openai-compatible") return "OpenAI \u517C\u5BB9";
+    return "\u7B49\u5F85\u8BC6\u522B";
+  }
+  function persistAiSettings() {
+    if (!state.aiSettings) return;
+    const apiKeys = Object.fromEntries(
+      Object.entries(state.apiKeyDrafts).filter(([, value]) => value.trim())
+    );
+    postMessage2({
+      type: "save-ai-settings",
+      settings: state.aiSettings,
+      ...Object.keys(apiKeys).length ? { apiKeys } : {}
+    });
+  }
+  function renderAiMainControls() {
+    const settings = state.aiSettings;
+    const provider = activeAiProvider();
+    aiModelSelect.replaceChildren();
+    if (!provider) {
+      aiModelSelect.append(option("", "\u8BF7\u5148\u914D\u7F6E\u6A21\u578B"));
+      aiModelSelect.disabled = true;
+      aiProviderSummary.textContent = "\u5C1A\u672A\u914D\u7F6E AI \u670D\u52A1";
+    } else {
+      const models = state.modelOptions[provider.id] || [];
+      const knownModels = models.some((model) => model.id === provider.model) ? models : provider.model ? [{ id: provider.model, name: provider.model }, ...models] : models;
+      if (knownModels.length === 0) {
+        aiModelSelect.append(option(provider.model, provider.model || "\u8BF7\u5230\u8BBE\u7F6E\u4E2D\u83B7\u53D6\u6A21\u578B"));
+      } else {
+        for (const model of knownModels) aiModelSelect.append(option(model.id, model.name));
+      }
+      aiModelSelect.value = provider.model;
+      aiModelSelect.disabled = state.aiBusy || !provider.baseUrl;
+      aiProviderSummary.textContent = `${provider.name} \xB7 ${resolvedFormatLabel(provider.resolvedApiFormat)}${provider.keyConfigured ? "" : " \xB7 \u672A\u4FDD\u5B58 API Key"}`;
+    }
+    aiStrategySelect.replaceChildren();
+    if (!settings) {
+      aiStrategySelect.append(option("", "\u901A\u7528\u7D20\u6750\u547D\u540D"));
+      aiStrategySelect.disabled = true;
+    } else {
+      const promptGroup = document.createElement("optgroup");
+      promptGroup.label = "\u63D0\u793A\u8BCD\u6A21\u677F";
+      for (const prompt of settings.prompts) {
+        promptGroup.append(option(`prompt:${prompt.id}`, prompt.name));
+      }
+      aiStrategySelect.append(promptGroup);
+      if (settings.skills.length > 0) {
+        const skillGroup = document.createElement("optgroup");
+        skillGroup.label = "Skill";
+        for (const skill of settings.skills) {
+          skillGroup.append(option(`skill:${skill.id}`, skill.name));
+        }
+        aiStrategySelect.append(skillGroup);
+      }
+      aiStrategySelect.value = `${settings.strategy.type}:${settings.strategy.id}`;
+      aiStrategySelect.disabled = state.aiBusy;
+    }
+    const suggestionCount = Object.keys(state.aiSuggestions).length;
+    aiAnalyzeButton.disabled = state.busy || state.aiBusy || state.items.length === 0;
+    aiAnalyzeButton.textContent = state.aiBusy ? "\u6B63\u5728\u5206\u6790\u8BBE\u8BA1\u56FE\u2026" : suggestionCount > 0 ? "\u2726 \u91CD\u65B0\u5206\u6790\u5F53\u524D\u9009\u62E9" : "\u2726 AI \u5206\u6790\u5F53\u524D\u9009\u62E9";
+    aiClearButton.hidden = suggestionCount === 0;
+    aiClearButton.disabled = state.busy || state.aiBusy;
+    aiSettingsButton.disabled = state.busy || state.aiBusy;
+  }
+  function renderProviderForm() {
+    const settings = state.aiSettings;
+    aiProviderSelect.replaceChildren();
+    if (!settings || settings.providers.length === 0) return;
+    for (const provider2 of settings.providers) {
+      aiProviderSelect.append(option(provider2.id, provider2.name));
+    }
+    aiProviderSelect.value = settings.activeProviderId;
+    const provider = activeAiProvider();
+    if (!provider) return;
+    aiProviderName.value = provider.name;
+    aiApiFormat.value = provider.apiFormat;
+    aiBaseUrl.value = provider.baseUrl;
+    aiApiKey.value = state.apiKeyDrafts[provider.id] || "";
+    aiKeyHelper.textContent = provider.keyConfigured ? `\u5DF2\u4FDD\u5B58\uFF1A${provider.maskedApiKey}\uFF1B\u8F93\u5165\u65B0 Key \u53EF\u66FF\u6362\u3002` : "\u5C1A\u672A\u4FDD\u5B58 API Key\u3002\u5B8C\u6574 Key \u4FDD\u5B58\u540E\u4E0D\u4F1A\u91CD\u65B0\u663E\u793A\u3002";
+    aiConnectionResult.textContent = provider.resolvedApiFormat ? `\u5F53\u524D\u8BC6\u522B\uFF1A${resolvedFormatLabel(provider.resolvedApiFormat)}` : "\u586B\u5199\u8FDE\u63A5\u4FE1\u606F\u540E\u83B7\u53D6\u6A21\u578B\u3002";
+    renderSettingsModels(provider);
+    aiProviderDelete.disabled = settings.providers.length <= 1;
+  }
+  function renderSettingsModels(provider) {
+    const models = state.modelOptions[provider.id] || [];
+    aiSettingsModel.replaceChildren(option("", models.length ? "\u8BF7\u9009\u62E9\u6A21\u578B" : "\u8BF7\u5148\u83B7\u53D6\u6A21\u578B"));
+    for (const model of models) aiSettingsModel.append(option(model.id, model.name));
+    if (provider.model && !models.some((model) => model.id === provider.model)) {
+      aiSettingsModel.append(option(provider.model, provider.model));
+    }
+    aiSettingsModel.value = provider.model;
+    aiManualModel.value = provider.model;
+  }
+  function renderPromptEditor(selectedId) {
+    const settings = state.aiSettings;
+    if (!settings) return;
+    aiPromptLibrary.replaceChildren();
+    for (const prompt2 of settings.prompts) aiPromptLibrary.append(option(prompt2.id, prompt2.name));
+    const id = selectedId || aiPromptLibrary.value || settings.prompts[0]?.id || "";
+    aiPromptLibrary.value = id;
+    const prompt = settings.prompts.find((item) => item.id === id) || settings.prompts[0];
+    aiPromptName.value = prompt?.name || "";
+    aiPromptContent.value = prompt?.content || "";
+    aiPromptDelete.disabled = settings.prompts.length <= 1;
+  }
+  function renderSkillEditor(selectedId) {
+    const settings = state.aiSettings;
+    if (!settings) return;
+    aiSkillLibrary.replaceChildren();
+    for (const skill2 of settings.skills) aiSkillLibrary.append(option(skill2.id, skill2.name));
+    if (settings.skills.length === 0) {
+      aiSkillLibrary.append(option("", "\u5C1A\u672A\u4E0A\u4F20 Skill"));
+    }
+    const id = selectedId || aiSkillLibrary.value || settings.skills[0]?.id || "";
+    aiSkillLibrary.value = id;
+    const skill = settings.skills.find((item) => item.id === id);
+    aiSkillName.value = skill?.name || "";
+    aiSkillContent.value = skill?.content || "";
+    aiSkillDelete.disabled = !skill;
+    aiSaveSkill.disabled = !skill;
+  }
+  function renderAiSettingsEditors() {
+    renderProviderForm();
+    renderPromptEditor();
+    renderSkillEditor();
+  }
   function namingError() {
     const unknown = findUnknownTokens(state.config.template);
     if (unknown.length > 0) {
@@ -1440,7 +1950,9 @@
       state.items,
       state.config,
       state.config.format,
-      state.config.scale
+      state.config.scale,
+      /* @__PURE__ */ new Date(),
+      state.aiSuggestions
     );
   }
   function renderPreview() {
@@ -1472,6 +1984,28 @@
       renamed.className = "preview-renamed";
       renamed.textContent = names[index];
       renamed.title = names[index];
+      if (state.aiSuggestions[state.items[index].id]) {
+        const nodeId = state.items[index].id;
+        renamed.classList.add("is-editable");
+        renamed.tabIndex = 0;
+        renamed.title = "\u53CC\u51FB\u7F16\u8F91 AI \u8BED\u4E49\u540D\u79F0";
+        const editSuggestion = () => {
+          const next = window.prompt("\u7F16\u8F91 AI \u8BED\u4E49\u540D\u79F0", state.aiSuggestions[nodeId]);
+          if (next?.trim()) {
+            state.aiSuggestions[nodeId] = next.trim();
+            render();
+            setStatus("\u5DF2\u66F4\u65B0 AI \u8BED\u4E49\u540D\u79F0", "success");
+          }
+        };
+        renamed.addEventListener("dblclick", editSuggestion);
+        renamed.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") editSuggestion();
+        });
+        const badge = document.createElement("span");
+        badge.className = "ai-badge";
+        badge.textContent = "\u2726 AI";
+        renamed.append(badge);
+      }
       row.append(original, arrow, renamed);
       previewList.append(row);
     }
@@ -1490,7 +2024,7 @@
       button.disabled = isVectorFormat || state.busy;
     });
     const error = namingError();
-    exportButton.disabled = state.busy || state.items.length === 0 || Boolean(error);
+    exportButton.disabled = state.busy || state.aiBusy || state.items.length === 0 || Boolean(error);
     exportButton.textContent = state.busy ? "\u6B63\u5728\u51C6\u5907\u4E0B\u8F7D\u2026" : state.items.length > 0 ? `\u6253\u5305\u4E0B\u8F7D ${state.items.length} \u4E2A\u6587\u4EF6` : "\u6253\u5305\u4E0B\u8F7D";
     for (const control of [
       formatSelect,
@@ -1504,6 +2038,7 @@
     tokenList.querySelectorAll("button").forEach((button) => {
       button.disabled = state.busy;
     });
+    renderAiMainControls();
   }
   function render() {
     renderSelection();
@@ -1531,6 +2066,7 @@
   function renderTokens() {
     const labels = {
       name: "\u56FE\u5C42\u540D",
+      ai: "AI \u8BED\u4E49\u540D",
       index: "\u5E8F\u53F7",
       parent: "\u7236\u7EA7\u540D",
       page: "\u9875\u9762\u540D",
@@ -1572,6 +2108,230 @@
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 3e4);
   }
+  function uniqueId(prefix) {
+    return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  }
+  function updateActiveProviderFromForm() {
+    const settings = state.aiSettings;
+    const provider = activeAiProvider();
+    if (!settings || !provider) return null;
+    provider.name = aiProviderName.value.trim() || "AI \u670D\u52A1";
+    provider.apiFormat = aiApiFormat.value;
+    provider.baseUrl = aiBaseUrl.value.trim();
+    provider.model = (aiManualModel.value.trim() || aiSettingsModel.value).trim();
+    if (aiApiKey.value.trim()) state.apiKeyDrafts[provider.id] = aiApiKey.value.trim();
+    return provider;
+  }
+  function openAiSettings(tab = "connection") {
+    aiSettingsView.hidden = false;
+    switchSettingsTab(tab);
+    renderAiSettingsEditors();
+  }
+  function switchSettingsTab(tab) {
+    document.querySelectorAll("[data-settings-tab]").forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.settingsTab === tab);
+    });
+    document.querySelectorAll("[data-settings-panel]").forEach((panel) => {
+      panel.hidden = panel.dataset.settingsPanel !== tab;
+    });
+  }
+  async function importedText(input, maxLength) {
+    const file = input.files?.[0];
+    if (!file) return null;
+    if (file.size > maxLength * 2) throw new Error(`\u6587\u4EF6\u8FC7\u5927\uFF0C\u6700\u591A\u5141\u8BB8 ${Math.round(maxLength / 1024)} KB`);
+    const text = (await file.text()).slice(0, maxLength);
+    if (!text.trim()) throw new Error("\u6587\u4EF6\u5185\u5BB9\u4E3A\u7A7A");
+    return { name: file.name.replace(/\.[^.]+$/u, ""), content: text };
+  }
+  aiSettingsButton.addEventListener("click", () => openAiSettings());
+  aiSettingsBack.addEventListener("click", () => {
+    aiSettingsView.hidden = true;
+  });
+  document.querySelectorAll("[data-settings-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const tab = button.dataset.settingsTab;
+      if (tab === "connection" || tab === "prompts" || tab === "skills") switchSettingsTab(tab);
+    });
+  });
+  aiProviderSelect.addEventListener("change", () => {
+    if (!state.aiSettings) return;
+    state.aiSettings.activeProviderId = aiProviderSelect.value;
+    renderProviderForm();
+  });
+  aiProviderAdd.addEventListener("click", () => {
+    if (!state.aiSettings) return;
+    const id = uniqueId("provider");
+    state.aiSettings.providers.push({
+      id,
+      name: `AI \u670D\u52A1 ${state.aiSettings.providers.length + 1}`,
+      apiFormat: "auto",
+      resolvedApiFormat: null,
+      baseUrl: "",
+      model: "",
+      keyConfigured: false,
+      maskedApiKey: ""
+    });
+    state.aiSettings.activeProviderId = id;
+    renderProviderForm();
+  });
+  aiProviderDelete.addEventListener("click", () => {
+    const settings = state.aiSettings;
+    if (!settings || settings.providers.length <= 1) return;
+    const id = settings.activeProviderId;
+    settings.providers = settings.providers.filter((provider) => provider.id !== id);
+    delete state.apiKeyDrafts[id];
+    delete state.modelOptions[id];
+    settings.activeProviderId = settings.providers[0].id;
+    persistAiSettings();
+    renderProviderForm();
+  });
+  aiApiKey.addEventListener("input", () => {
+    const provider = activeAiProvider();
+    if (provider) state.apiKeyDrafts[provider.id] = aiApiKey.value;
+  });
+  aiSettingsModel.addEventListener("change", () => {
+    aiManualModel.value = aiSettingsModel.value;
+  });
+  aiFetchModels.addEventListener("click", () => {
+    const provider = updateActiveProviderFromForm();
+    if (!provider) return;
+    aiFetchModels.disabled = true;
+    aiConnectionResult.textContent = "\u6B63\u5728\u8FDE\u63A5\u5E76\u83B7\u53D6\u6A21\u578B\u2026";
+    postMessage2({
+      type: "list-ai-models",
+      provider,
+      ...state.apiKeyDrafts[provider.id]?.trim() ? { apiKey: state.apiKeyDrafts[provider.id].trim() } : {}
+    });
+  });
+  aiSaveConnection.addEventListener("click", () => {
+    const provider = updateActiveProviderFromForm();
+    if (!provider) return;
+    persistAiSettings();
+    aiConnectionResult.textContent = "\u6B63\u5728\u4FDD\u5B58\u670D\u52A1\u914D\u7F6E\u2026";
+  });
+  aiPromptLibrary.addEventListener("change", () => renderPromptEditor(aiPromptLibrary.value));
+  aiPromptNew.addEventListener("click", () => {
+    if (!state.aiSettings) return;
+    const prompt = { id: uniqueId("prompt"), name: "\u65B0\u63D0\u793A\u8BCD", content: "\u8BF7\u6839\u636E\u8BBE\u8BA1\u56FE\u7684\u5185\u5BB9\u548C\u7528\u9014\u751F\u6210\u7B80\u6D01\u7684\u82F1\u6587 kebab-case \u6587\u4EF6\u540D\u3002" };
+    state.aiSettings.prompts.push(prompt);
+    renderPromptEditor(prompt.id);
+  });
+  aiPromptDelete.addEventListener("click", () => {
+    const settings = state.aiSettings;
+    if (!settings || settings.prompts.length <= 1) return;
+    const id = aiPromptLibrary.value;
+    settings.prompts = settings.prompts.filter((prompt) => prompt.id !== id);
+    if (settings.strategy.type === "prompt" && settings.strategy.id === id) {
+      settings.strategy = { type: "prompt", id: settings.prompts[0].id };
+    }
+    persistAiSettings();
+    renderPromptEditor();
+  });
+  aiPromptImport.addEventListener("click", () => aiPromptFile.click());
+  aiPromptFile.addEventListener("change", async () => {
+    try {
+      const imported = await importedText(aiPromptFile, 2e4);
+      if (!imported || !state.aiSettings) return;
+      let name = imported.name;
+      let content = imported.content;
+      if (aiPromptFile.files?.[0]?.name.toLowerCase().endsWith(".json")) {
+        const parsed = JSON.parse(imported.content);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          const record = parsed;
+          if (typeof record.name === "string") name = record.name;
+          if (typeof record.content === "string") content = record.content;
+        }
+      }
+      const prompt = { id: uniqueId("prompt"), name: name.slice(0, 80), content: content.slice(0, 2e4) };
+      state.aiSettings.prompts.push(prompt);
+      renderPromptEditor(prompt.id);
+      setStatus("\u63D0\u793A\u8BCD\u5DF2\u5BFC\u5165\uFF0C\u8BF7\u786E\u8BA4\u540E\u4FDD\u5B58", "success");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error), "error");
+    } finally {
+      aiPromptFile.value = "";
+    }
+  });
+  aiSavePrompt.addEventListener("click", () => {
+    const settings = state.aiSettings;
+    const prompt = settings?.prompts.find((item) => item.id === aiPromptLibrary.value);
+    if (!settings || !prompt || !aiPromptContent.value.trim()) return;
+    prompt.name = aiPromptName.value.trim() || "\u672A\u547D\u540D\u63D0\u793A\u8BCD";
+    prompt.content = aiPromptContent.value.slice(0, 2e4);
+    persistAiSettings();
+    renderPromptEditor(prompt.id);
+  });
+  aiSkillLibrary.addEventListener("change", () => renderSkillEditor(aiSkillLibrary.value));
+  aiSkillUpload.addEventListener("click", () => aiSkillFile.click());
+  aiSkillFile.addEventListener("change", async () => {
+    try {
+      const imported = await importedText(aiSkillFile, 64e3);
+      if (!imported || !state.aiSettings) return;
+      const skill = {
+        id: uniqueId("skill"),
+        name: imported.name.slice(0, 100),
+        content: imported.content
+      };
+      state.aiSettings.skills.push(skill);
+      renderSkillEditor(skill.id);
+      setStatus("Skill \u5DF2\u8F7D\u5165\uFF0C\u8BF7\u786E\u8BA4\u540E\u4FDD\u5B58", "success");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error), "error");
+    } finally {
+      aiSkillFile.value = "";
+    }
+  });
+  aiSkillDelete.addEventListener("click", () => {
+    const settings = state.aiSettings;
+    if (!settings) return;
+    const id = aiSkillLibrary.value;
+    settings.skills = settings.skills.filter((skill) => skill.id !== id);
+    if (settings.strategy.type === "skill" && settings.strategy.id === id) {
+      settings.strategy = { type: "prompt", id: settings.prompts[0].id };
+    }
+    persistAiSettings();
+    renderSkillEditor();
+  });
+  aiSaveSkill.addEventListener("click", () => {
+    const settings = state.aiSettings;
+    const skill = settings?.skills.find((item) => item.id === aiSkillLibrary.value);
+    if (!settings || !skill || !aiSkillContent.value.trim()) return;
+    skill.name = aiSkillName.value.trim() || "\u672A\u547D\u540D Skill";
+    skill.content = aiSkillContent.value.slice(0, 64e3);
+    persistAiSettings();
+    renderSkillEditor(skill.id);
+  });
+  aiModelSelect.addEventListener("change", () => {
+    const provider = activeAiProvider();
+    if (!provider) return;
+    provider.model = aiModelSelect.value;
+    persistAiSettings();
+  });
+  aiStrategySelect.addEventListener("change", () => {
+    if (!state.aiSettings) return;
+    const [type, id] = aiStrategySelect.value.split(":", 2);
+    if ((type === "prompt" || type === "skill") && id) {
+      state.aiSettings.strategy = { type, id };
+      persistAiSettings();
+    }
+  });
+  aiAnalyzeButton.addEventListener("click", () => {
+    const provider = activeAiProvider();
+    if (!provider?.baseUrl || !provider.keyConfigured || !provider.model) {
+      openAiSettings();
+      aiConnectionResult.textContent = "\u8BF7\u5148\u5B8C\u6210 Base URL\u3001API Key \u548C\u89C6\u89C9\u6A21\u578B\u914D\u7F6E\u3002";
+      return;
+    }
+    state.aiBusy = true;
+    render();
+    setStatus("\u6B63\u5728\u51C6\u5907\u8BBE\u8BA1\u56FE\u5206\u6790\u2026");
+    postMessage2({ type: "analyze-selection" });
+  });
+  aiClearButton.addEventListener("click", () => {
+    state.aiSuggestions = {};
+    render();
+    setStatus("\u5DF2\u6E05\u9664 AI \u547D\u540D\u7ED3\u679C", "success");
+  });
   formatSelect.addEventListener("change", () => {
     updateConfig({ format: formatSelect.value });
   });
@@ -1598,7 +2358,11 @@
     state.busy = true;
     renderActions();
     setStatus("\u6B63\u5728\u4ECE Figma \u5BFC\u51FA\u8D44\u6E90\u2026");
-    postMessage2({ type: "export", config: state.config });
+    postMessage2({
+      type: "export",
+      config: state.config,
+      ...Object.keys(state.aiSuggestions).length ? { semanticNames: state.aiSuggestions } : {}
+    });
   });
   window.onmessage = (event) => {
     const message = event.data?.pluginMessage;
@@ -1606,6 +2370,9 @@
       return;
     }
     if (message.type === "selection") {
+      const previousSelection = state.items.map((item) => item.id).join("|");
+      const nextSelection = message.items.map((item) => item.id).join("|");
+      if (previousSelection !== nextSelection) state.aiSuggestions = {};
       state.items = message.items;
       state.ignoredCount = message.ignoredCount;
       render();
@@ -1615,6 +2382,55 @@
       state.config = mergeSavedConfig(message.config);
       syncControls();
       render();
+      return;
+    }
+    if (message.type === "ai-settings") {
+      state.aiSettings = message.settings;
+      state.apiKeyDrafts = {};
+      renderAiSettingsEditors();
+      render();
+      if (!aiSettingsView.hidden) aiConnectionResult.textContent = "\u670D\u52A1\u914D\u7F6E\u5DF2\u4FDD\u5B58\u3002";
+      return;
+    }
+    if (message.type === "ai-models") {
+      state.modelOptions[message.providerId] = message.models;
+      const provider = state.aiSettings?.providers.find((item) => item.id === message.providerId);
+      if (provider) {
+        provider.resolvedApiFormat = message.resolvedApiFormat;
+        if (!provider.model && message.models.length === 1) {
+          provider.model = message.models[0].id;
+        }
+        renderSettingsModels(provider);
+      }
+      aiFetchModels.disabled = false;
+      aiConnectionResult.textContent = message.models.length ? `\u8FDE\u63A5\u6210\u529F\uFF1A${resolvedFormatLabel(message.resolvedApiFormat)}\uFF0C\u83B7\u53D6\u5230 ${message.models.length} \u4E2A\u6A21\u578B\u3002` : `\u8FDE\u63A5\u6210\u529F\uFF1A${resolvedFormatLabel(message.resolvedApiFormat)}\uFF0C\u4F46\u6CA1\u6709\u53D1\u73B0\u53EF\u7528\u6A21\u578B\uFF0C\u53EF\u624B\u52A8\u586B\u5199\u6A21\u578B ID\u3002`;
+      renderAiMainControls();
+      return;
+    }
+    if (message.type === "ai-analysis-started") {
+      state.aiBusy = true;
+      renderActions();
+      setStatus(`\u6B63\u5728\u5206\u6790 0 / ${message.total}\u2026`);
+      return;
+    }
+    if (message.type === "ai-analysis-progress") {
+      setStatus(`\u6B63\u5728\u51C6\u5907\u5E76\u5206\u6790 ${message.completed} / ${message.total}\u2026`);
+      return;
+    }
+    if (message.type === "ai-analysis-complete") {
+      state.aiSuggestions = Object.fromEntries(message.suggestions.map((suggestion) => [suggestion.nodeId, suggestion.name]));
+      state.aiBusy = false;
+      render();
+      const failed = message.failedNodeIds.length ? `\uFF0C${message.failedNodeIds.length} \u4E2A\u672A\u80FD\u547D\u540D` : "";
+      setStatus(`AI \u5DF2\u751F\u6210 ${message.suggestions.length} \u4E2A\u8BED\u4E49\u540D\u79F0${failed}`, message.failedNodeIds.length ? "warning" : "success");
+      return;
+    }
+    if (message.type === "ai-error") {
+      state.aiBusy = false;
+      aiFetchModels.disabled = false;
+      render();
+      setStatus(message.message, "error");
+      if (!aiSettingsView.hidden) aiConnectionResult.textContent = message.message;
       return;
     }
     if (message.type === "export-started") {

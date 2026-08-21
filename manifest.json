@@ -8,6 +8,7 @@
   "editorType": ["dev"],
   "capabilities": ["inspect", "vscode"],
   "networkAccess": {
-    "allowedDomains": ["none"]
+    "allowedDomains": ["*"],
+    "reasoning": "用户可配置自己的 AI 图片分析服务，插件需要访问其提供的 Base URL 来获取模型并生成语义文件名。"
   }
 }

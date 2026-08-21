@@ -6,6 +6,11 @@ import {
 } from "./naming";
 import { buildArchive } from "./archive";
 import type {
+  AiApiFormat,
+  AiModelOption,
+  AiProviderProfileView,
+  AiSettingsView,
+  AiSkill,
   ExportConfig,
   ExportFormat,
   ExportableNodeInfo,
@@ -25,11 +30,21 @@ const state: {
   ignoredCount: number;
   busy: boolean;
   config: ExportConfig;
+  aiSettings: AiSettingsView | null;
+  aiBusy: boolean;
+  aiSuggestions: Record<string, string>;
+  modelOptions: Record<string, AiModelOption[]>;
+  apiKeyDrafts: Record<string, string>;
 } = {
   items: [],
   ignoredCount: 0,
   busy: false,
-  config: { ...defaultConfig }
+  config: { ...defaultConfig },
+  aiSettings: null,
+  aiBusy: false,
+  aiSuggestions: {},
+  modelOptions: {},
+  apiKeyDrafts: {}
 };
 
 function element<T extends HTMLElement>(id: string): T {
@@ -54,6 +69,42 @@ const templateError = element<HTMLParagraphElement>("template-error");
 const exportButton = element<HTMLButtonElement>("export-button");
 const resetButton = element<HTMLButtonElement>("reset-button");
 const status = element<HTMLDivElement>("status");
+const aiModelSelect = element<HTMLSelectElement>("ai-model-select");
+const aiStrategySelect = element<HTMLSelectElement>("ai-strategy-select");
+const aiProviderSummary = element<HTMLParagraphElement>("ai-provider-summary");
+const aiAnalyzeButton = element<HTMLButtonElement>("ai-analyze-button");
+const aiClearButton = element<HTMLButtonElement>("ai-clear-button");
+const aiSettingsButton = element<HTMLButtonElement>("ai-settings-button");
+const aiSettingsView = element<HTMLElement>("ai-settings-view");
+const aiSettingsBack = element<HTMLButtonElement>("ai-settings-back");
+const aiProviderSelect = element<HTMLSelectElement>("ai-provider-select");
+const aiProviderAdd = element<HTMLButtonElement>("ai-provider-add");
+const aiProviderDelete = element<HTMLButtonElement>("ai-provider-delete");
+const aiProviderName = element<HTMLInputElement>("ai-provider-name");
+const aiApiFormat = element<HTMLSelectElement>("ai-api-format");
+const aiBaseUrl = element<HTMLInputElement>("ai-base-url");
+const aiApiKey = element<HTMLInputElement>("ai-api-key");
+const aiKeyHelper = element<HTMLParagraphElement>("ai-key-helper");
+const aiConnectionResult = element<HTMLDivElement>("ai-connection-result");
+const aiFetchModels = element<HTMLButtonElement>("ai-fetch-models");
+const aiSettingsModel = element<HTMLSelectElement>("ai-settings-model");
+const aiManualModel = element<HTMLInputElement>("ai-manual-model");
+const aiSaveConnection = element<HTMLButtonElement>("ai-save-connection");
+const aiPromptLibrary = element<HTMLSelectElement>("ai-prompt-library");
+const aiPromptNew = element<HTMLButtonElement>("ai-prompt-new");
+const aiPromptImport = element<HTMLButtonElement>("ai-prompt-import");
+const aiPromptDelete = element<HTMLButtonElement>("ai-prompt-delete");
+const aiPromptFile = element<HTMLInputElement>("ai-prompt-file");
+const aiPromptName = element<HTMLInputElement>("ai-prompt-name");
+const aiPromptContent = element<HTMLTextAreaElement>("ai-prompt-content");
+const aiSavePrompt = element<HTMLButtonElement>("ai-save-prompt");
+const aiSkillLibrary = element<HTMLSelectElement>("ai-skill-library");
+const aiSkillUpload = element<HTMLButtonElement>("ai-skill-upload");
+const aiSkillDelete = element<HTMLButtonElement>("ai-skill-delete");
+const aiSkillFile = element<HTMLInputElement>("ai-skill-file");
+const aiSkillName = element<HTMLInputElement>("ai-skill-name");
+const aiSkillContent = element<HTMLTextAreaElement>("ai-skill-content");
+const aiSaveSkill = element<HTMLButtonElement>("ai-save-skill");
 
 function saveConfig(): void {
   postMessage({ type: "save-settings", config: state.config });
@@ -106,6 +157,176 @@ function setStatus(message: string, tone: "neutral" | "success" | "warning" | "e
   status.dataset.tone = tone;
 }
 
+function activeAiProvider(): AiProviderProfileView | null {
+  const settings = state.aiSettings;
+  if (!settings) return null;
+  return settings.providers.find((provider) => provider.id === settings.activeProviderId)
+    || settings.providers[0]
+    || null;
+}
+
+function option(value: string, label: string): HTMLOptionElement {
+  const item = document.createElement("option");
+  item.value = value;
+  item.textContent = label;
+  return item;
+}
+
+function resolvedFormatLabel(format: AiProviderProfileView["resolvedApiFormat"]): string {
+  if (format === "gemini-native") return "Gemini 原生";
+  if (format === "anthropic-compatible") return "Anthropic 兼容";
+  if (format === "openai-compatible") return "OpenAI 兼容";
+  return "等待识别";
+}
+
+function persistAiSettings(): void {
+  if (!state.aiSettings) return;
+  const apiKeys = Object.fromEntries(
+    Object.entries(state.apiKeyDrafts).filter(([, value]) => value.trim())
+  );
+  postMessage({
+    type: "save-ai-settings",
+    settings: state.aiSettings,
+    ...(Object.keys(apiKeys).length ? { apiKeys } : {})
+  });
+}
+
+function renderAiMainControls(): void {
+  const settings = state.aiSettings;
+  const provider = activeAiProvider();
+  aiModelSelect.replaceChildren();
+  if (!provider) {
+    aiModelSelect.append(option("", "请先配置模型"));
+    aiModelSelect.disabled = true;
+    aiProviderSummary.textContent = "尚未配置 AI 服务";
+  } else {
+    const models = state.modelOptions[provider.id] || [];
+    const knownModels = models.some((model) => model.id === provider.model)
+      ? models
+      : provider.model ? [{ id: provider.model, name: provider.model }, ...models] : models;
+    if (knownModels.length === 0) {
+      aiModelSelect.append(option(provider.model, provider.model || "请到设置中获取模型"));
+    } else {
+      for (const model of knownModels) aiModelSelect.append(option(model.id, model.name));
+    }
+    aiModelSelect.value = provider.model;
+    aiModelSelect.disabled = state.aiBusy || !provider.baseUrl;
+    aiProviderSummary.textContent = `${provider.name} · ${resolvedFormatLabel(provider.resolvedApiFormat)}${provider.keyConfigured ? "" : " · 未保存 API Key"}`;
+  }
+
+  aiStrategySelect.replaceChildren();
+  if (!settings) {
+    aiStrategySelect.append(option("", "通用素材命名"));
+    aiStrategySelect.disabled = true;
+  } else {
+    const promptGroup = document.createElement("optgroup");
+    promptGroup.label = "提示词模板";
+    for (const prompt of settings.prompts) {
+      promptGroup.append(option(`prompt:${prompt.id}`, prompt.name));
+    }
+    aiStrategySelect.append(promptGroup);
+    if (settings.skills.length > 0) {
+      const skillGroup = document.createElement("optgroup");
+      skillGroup.label = "Skill";
+      for (const skill of settings.skills) {
+        skillGroup.append(option(`skill:${skill.id}`, skill.name));
+      }
+      aiStrategySelect.append(skillGroup);
+    }
+    aiStrategySelect.value = `${settings.strategy.type}:${settings.strategy.id}`;
+    aiStrategySelect.disabled = state.aiBusy;
+  }
+
+  const suggestionCount = Object.keys(state.aiSuggestions).length;
+  aiAnalyzeButton.disabled = state.busy || state.aiBusy || state.items.length === 0;
+  aiAnalyzeButton.textContent = state.aiBusy
+    ? "正在分析设计图…"
+    : suggestionCount > 0
+      ? "✦ 重新分析当前选择"
+      : "✦ AI 分析当前选择";
+  aiClearButton.hidden = suggestionCount === 0;
+  aiClearButton.disabled = state.busy || state.aiBusy;
+  aiSettingsButton.disabled = state.busy || state.aiBusy;
+}
+
+function currentProviderDraft(): AiProviderProfileView | null {
+  const settings = state.aiSettings;
+  if (!settings) return null;
+  return settings.providers.find((provider) => provider.id === aiProviderSelect.value)
+    || activeAiProvider();
+}
+
+function renderProviderForm(): void {
+  const settings = state.aiSettings;
+  aiProviderSelect.replaceChildren();
+  if (!settings || settings.providers.length === 0) return;
+  for (const provider of settings.providers) {
+    aiProviderSelect.append(option(provider.id, provider.name));
+  }
+  aiProviderSelect.value = settings.activeProviderId;
+  const provider = activeAiProvider();
+  if (!provider) return;
+  aiProviderName.value = provider.name;
+  aiApiFormat.value = provider.apiFormat;
+  aiBaseUrl.value = provider.baseUrl;
+  aiApiKey.value = state.apiKeyDrafts[provider.id] || "";
+  aiKeyHelper.textContent = provider.keyConfigured
+    ? `已保存：${provider.maskedApiKey}；输入新 Key 可替换。`
+    : "尚未保存 API Key。完整 Key 保存后不会重新显示。";
+  aiConnectionResult.textContent = provider.resolvedApiFormat
+    ? `当前识别：${resolvedFormatLabel(provider.resolvedApiFormat)}`
+    : "填写连接信息后获取模型。";
+  renderSettingsModels(provider);
+  aiProviderDelete.disabled = settings.providers.length <= 1;
+}
+
+function renderSettingsModels(provider: AiProviderProfileView): void {
+  const models = state.modelOptions[provider.id] || [];
+  aiSettingsModel.replaceChildren(option("", models.length ? "请选择模型" : "请先获取模型"));
+  for (const model of models) aiSettingsModel.append(option(model.id, model.name));
+  if (provider.model && !models.some((model) => model.id === provider.model)) {
+    aiSettingsModel.append(option(provider.model, provider.model));
+  }
+  aiSettingsModel.value = provider.model;
+  aiManualModel.value = provider.model;
+}
+
+function renderPromptEditor(selectedId?: string): void {
+  const settings = state.aiSettings;
+  if (!settings) return;
+  aiPromptLibrary.replaceChildren();
+  for (const prompt of settings.prompts) aiPromptLibrary.append(option(prompt.id, prompt.name));
+  const id = selectedId || aiPromptLibrary.value || settings.prompts[0]?.id || "";
+  aiPromptLibrary.value = id;
+  const prompt = settings.prompts.find((item) => item.id === id) || settings.prompts[0];
+  aiPromptName.value = prompt?.name || "";
+  aiPromptContent.value = prompt?.content || "";
+  aiPromptDelete.disabled = settings.prompts.length <= 1;
+}
+
+function renderSkillEditor(selectedId?: string): void {
+  const settings = state.aiSettings;
+  if (!settings) return;
+  aiSkillLibrary.replaceChildren();
+  for (const skill of settings.skills) aiSkillLibrary.append(option(skill.id, skill.name));
+  if (settings.skills.length === 0) {
+    aiSkillLibrary.append(option("", "尚未上传 Skill"));
+  }
+  const id = selectedId || aiSkillLibrary.value || settings.skills[0]?.id || "";
+  aiSkillLibrary.value = id;
+  const skill = settings.skills.find((item) => item.id === id);
+  aiSkillName.value = skill?.name || "";
+  aiSkillContent.value = skill?.content || "";
+  aiSkillDelete.disabled = !skill;
+  aiSaveSkill.disabled = !skill;
+}
+
+function renderAiSettingsEditors(): void {
+  renderProviderForm();
+  renderPromptEditor();
+  renderSkillEditor();
+}
+
 function namingError(): string | null {
   const unknown = findUnknownTokens(state.config.template);
   if (unknown.length > 0) {
@@ -133,7 +354,9 @@ function previewNames(): string[] {
     state.items,
     state.config,
     state.config.format,
-    state.config.scale
+    state.config.scale,
+    new Date(),
+    state.aiSuggestions
   );
 }
 
@@ -172,6 +395,29 @@ function renderPreview(): void {
     renamed.textContent = names[index];
     renamed.title = names[index];
 
+    if (state.aiSuggestions[state.items[index].id]) {
+      const nodeId = state.items[index].id;
+      renamed.classList.add("is-editable");
+      renamed.tabIndex = 0;
+      renamed.title = "双击编辑 AI 语义名称";
+      const editSuggestion = () => {
+        const next = window.prompt("编辑 AI 语义名称", state.aiSuggestions[nodeId]);
+        if (next?.trim()) {
+          state.aiSuggestions[nodeId] = next.trim();
+          render();
+          setStatus("已更新 AI 语义名称", "success");
+        }
+      };
+      renamed.addEventListener("dblclick", editSuggestion);
+      renamed.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") editSuggestion();
+      });
+      const badge = document.createElement("span");
+      badge.className = "ai-badge";
+      badge.textContent = "✦ AI";
+      renamed.append(badge);
+    }
+
     row.append(original, arrow, renamed);
     previewList.append(row);
   }
@@ -193,7 +439,7 @@ function renderActions(): void {
   });
 
   const error = namingError();
-  exportButton.disabled = state.busy || state.items.length === 0 || Boolean(error);
+  exportButton.disabled = state.busy || state.aiBusy || state.items.length === 0 || Boolean(error);
   exportButton.textContent = state.busy
     ? "正在准备下载…"
     : state.items.length > 0
@@ -212,6 +458,7 @@ function renderActions(): void {
   tokenList.querySelectorAll<HTMLButtonElement>("button").forEach((button) => {
     button.disabled = state.busy;
   });
+  renderAiMainControls();
 }
 
 function render(): void {
@@ -243,6 +490,7 @@ function insertToken(token: string): void {
 function renderTokens(): void {
   const labels: Record<string, string> = {
     name: "图层名",
+    ai: "AI 语义名",
     index: "序号",
     parent: "父级名",
     page: "页面名",
@@ -287,6 +535,250 @@ function downloadArchive(files: Array<{ name: string; bytes: Uint8Array }>): voi
   window.setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
+function uniqueId(prefix: "provider" | "prompt" | "skill"): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function updateActiveProviderFromForm(): AiProviderProfileView | null {
+  const settings = state.aiSettings;
+  const provider = activeAiProvider();
+  if (!settings || !provider) return null;
+  provider.name = aiProviderName.value.trim() || "AI 服务";
+  provider.apiFormat = aiApiFormat.value as AiApiFormat;
+  provider.baseUrl = aiBaseUrl.value.trim();
+  provider.model = (aiManualModel.value.trim() || aiSettingsModel.value).trim();
+  if (aiApiKey.value.trim()) state.apiKeyDrafts[provider.id] = aiApiKey.value.trim();
+  return provider;
+}
+
+function openAiSettings(tab: "connection" | "prompts" | "skills" = "connection"): void {
+  aiSettingsView.hidden = false;
+  switchSettingsTab(tab);
+  renderAiSettingsEditors();
+}
+
+function switchSettingsTab(tab: "connection" | "prompts" | "skills"): void {
+  document.querySelectorAll<HTMLButtonElement>("[data-settings-tab]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.settingsTab === tab);
+  });
+  document.querySelectorAll<HTMLElement>("[data-settings-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.settingsPanel !== tab;
+  });
+}
+
+async function importedText(input: HTMLInputElement, maxLength: number): Promise<{ name: string; content: string } | null> {
+  const file = input.files?.[0];
+  if (!file) return null;
+  if (file.size > maxLength * 2) throw new Error(`文件过大，最多允许 ${Math.round(maxLength / 1024)} KB`);
+  const text = (await file.text()).slice(0, maxLength);
+  if (!text.trim()) throw new Error("文件内容为空");
+  return { name: file.name.replace(/\.[^.]+$/u, ""), content: text };
+}
+
+aiSettingsButton.addEventListener("click", () => openAiSettings());
+aiSettingsBack.addEventListener("click", () => {
+  aiSettingsView.hidden = true;
+});
+
+document.querySelectorAll<HTMLButtonElement>("[data-settings-tab]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const tab = button.dataset.settingsTab;
+    if (tab === "connection" || tab === "prompts" || tab === "skills") switchSettingsTab(tab);
+  });
+});
+
+aiProviderSelect.addEventListener("change", () => {
+  if (!state.aiSettings) return;
+  state.aiSettings.activeProviderId = aiProviderSelect.value;
+  renderProviderForm();
+});
+
+aiProviderAdd.addEventListener("click", () => {
+  if (!state.aiSettings) return;
+  const id = uniqueId("provider");
+  state.aiSettings.providers.push({
+    id,
+    name: `AI 服务 ${state.aiSettings.providers.length + 1}`,
+    apiFormat: "auto",
+    resolvedApiFormat: null,
+    baseUrl: "",
+    model: "",
+    keyConfigured: false,
+    maskedApiKey: ""
+  });
+  state.aiSettings.activeProviderId = id;
+  renderProviderForm();
+});
+
+aiProviderDelete.addEventListener("click", () => {
+  const settings = state.aiSettings;
+  if (!settings || settings.providers.length <= 1) return;
+  const id = settings.activeProviderId;
+  settings.providers = settings.providers.filter((provider) => provider.id !== id);
+  delete state.apiKeyDrafts[id];
+  delete state.modelOptions[id];
+  settings.activeProviderId = settings.providers[0].id;
+  persistAiSettings();
+  renderProviderForm();
+});
+
+aiApiKey.addEventListener("input", () => {
+  const provider = activeAiProvider();
+  if (provider) state.apiKeyDrafts[provider.id] = aiApiKey.value;
+});
+
+aiSettingsModel.addEventListener("change", () => {
+  aiManualModel.value = aiSettingsModel.value;
+});
+
+aiFetchModels.addEventListener("click", () => {
+  const provider = updateActiveProviderFromForm();
+  if (!provider) return;
+  aiFetchModels.disabled = true;
+  aiConnectionResult.textContent = "正在连接并获取模型…";
+  postMessage({
+    type: "list-ai-models",
+    provider,
+    ...(state.apiKeyDrafts[provider.id]?.trim() ? { apiKey: state.apiKeyDrafts[provider.id].trim() } : {})
+  });
+});
+
+aiSaveConnection.addEventListener("click", () => {
+  const provider = updateActiveProviderFromForm();
+  if (!provider) return;
+  persistAiSettings();
+  aiConnectionResult.textContent = "正在保存服务配置…";
+});
+
+aiPromptLibrary.addEventListener("change", () => renderPromptEditor(aiPromptLibrary.value));
+aiPromptNew.addEventListener("click", () => {
+  if (!state.aiSettings) return;
+  const prompt = { id: uniqueId("prompt"), name: "新提示词", content: "请根据设计图的内容和用途生成简洁的英文 kebab-case 文件名。" };
+  state.aiSettings.prompts.push(prompt);
+  renderPromptEditor(prompt.id);
+});
+aiPromptDelete.addEventListener("click", () => {
+  const settings = state.aiSettings;
+  if (!settings || settings.prompts.length <= 1) return;
+  const id = aiPromptLibrary.value;
+  settings.prompts = settings.prompts.filter((prompt) => prompt.id !== id);
+  if (settings.strategy.type === "prompt" && settings.strategy.id === id) {
+    settings.strategy = { type: "prompt", id: settings.prompts[0].id };
+  }
+  persistAiSettings();
+  renderPromptEditor();
+});
+aiPromptImport.addEventListener("click", () => aiPromptFile.click());
+aiPromptFile.addEventListener("change", async () => {
+  try {
+    const imported = await importedText(aiPromptFile, 20_000);
+    if (!imported || !state.aiSettings) return;
+    let name = imported.name;
+    let content = imported.content;
+    if (aiPromptFile.files?.[0]?.name.toLowerCase().endsWith(".json")) {
+      const parsed = JSON.parse(imported.content) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const record = parsed as Record<string, unknown>;
+        if (typeof record.name === "string") name = record.name;
+        if (typeof record.content === "string") content = record.content;
+      }
+    }
+    const prompt = { id: uniqueId("prompt"), name: name.slice(0, 80), content: content.slice(0, 20_000) };
+    state.aiSettings.prompts.push(prompt);
+    renderPromptEditor(prompt.id);
+    setStatus("提示词已导入，请确认后保存", "success");
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : String(error), "error");
+  } finally {
+    aiPromptFile.value = "";
+  }
+});
+aiSavePrompt.addEventListener("click", () => {
+  const settings = state.aiSettings;
+  const prompt = settings?.prompts.find((item) => item.id === aiPromptLibrary.value);
+  if (!settings || !prompt || !aiPromptContent.value.trim()) return;
+  prompt.name = aiPromptName.value.trim() || "未命名提示词";
+  prompt.content = aiPromptContent.value.slice(0, 20_000);
+  persistAiSettings();
+  renderPromptEditor(prompt.id);
+});
+
+aiSkillLibrary.addEventListener("change", () => renderSkillEditor(aiSkillLibrary.value));
+aiSkillUpload.addEventListener("click", () => aiSkillFile.click());
+aiSkillFile.addEventListener("change", async () => {
+  try {
+    const imported = await importedText(aiSkillFile, 64_000);
+    if (!imported || !state.aiSettings) return;
+    const skill: AiSkill = {
+      id: uniqueId("skill"),
+      name: imported.name.slice(0, 100),
+      content: imported.content
+    };
+    state.aiSettings.skills.push(skill);
+    renderSkillEditor(skill.id);
+    setStatus("Skill 已载入，请确认后保存", "success");
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : String(error), "error");
+  } finally {
+    aiSkillFile.value = "";
+  }
+});
+aiSkillDelete.addEventListener("click", () => {
+  const settings = state.aiSettings;
+  if (!settings) return;
+  const id = aiSkillLibrary.value;
+  settings.skills = settings.skills.filter((skill) => skill.id !== id);
+  if (settings.strategy.type === "skill" && settings.strategy.id === id) {
+    settings.strategy = { type: "prompt", id: settings.prompts[0].id };
+  }
+  persistAiSettings();
+  renderSkillEditor();
+});
+aiSaveSkill.addEventListener("click", () => {
+  const settings = state.aiSettings;
+  const skill = settings?.skills.find((item) => item.id === aiSkillLibrary.value);
+  if (!settings || !skill || !aiSkillContent.value.trim()) return;
+  skill.name = aiSkillName.value.trim() || "未命名 Skill";
+  skill.content = aiSkillContent.value.slice(0, 64_000);
+  persistAiSettings();
+  renderSkillEditor(skill.id);
+});
+
+aiModelSelect.addEventListener("change", () => {
+  const provider = activeAiProvider();
+  if (!provider) return;
+  provider.model = aiModelSelect.value;
+  persistAiSettings();
+});
+
+aiStrategySelect.addEventListener("change", () => {
+  if (!state.aiSettings) return;
+  const [type, id] = aiStrategySelect.value.split(":", 2);
+  if ((type === "prompt" || type === "skill") && id) {
+    state.aiSettings.strategy = { type, id };
+    persistAiSettings();
+  }
+});
+
+aiAnalyzeButton.addEventListener("click", () => {
+  const provider = activeAiProvider();
+  if (!provider?.baseUrl || !provider.keyConfigured || !provider.model) {
+    openAiSettings();
+    aiConnectionResult.textContent = "请先完成 Base URL、API Key 和视觉模型配置。";
+    return;
+  }
+  state.aiBusy = true;
+  render();
+  setStatus("正在准备设计图分析…");
+  postMessage({ type: "analyze-selection" });
+});
+
+aiClearButton.addEventListener("click", () => {
+  state.aiSuggestions = {};
+  render();
+  setStatus("已清除 AI 命名结果", "success");
+});
+
 formatSelect.addEventListener("change", () => {
   updateConfig({ format: formatSelect.value as ExportFormat });
 });
@@ -317,7 +809,11 @@ exportButton.addEventListener("click", () => {
   state.busy = true;
   renderActions();
   setStatus("正在从 Figma 导出资源…");
-  postMessage({ type: "export", config: state.config });
+  postMessage({
+    type: "export",
+    config: state.config,
+    ...(Object.keys(state.aiSuggestions).length ? { semanticNames: state.aiSuggestions } : {})
+  });
 });
 
 window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) => {
@@ -327,6 +823,9 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
   }
 
   if (message.type === "selection") {
+    const previousSelection = state.items.map((item) => item.id).join("|");
+    const nextSelection = message.items.map((item) => item.id).join("|");
+    if (previousSelection !== nextSelection) state.aiSuggestions = {};
     state.items = message.items;
     state.ignoredCount = message.ignoredCount;
     render();
@@ -337,6 +836,63 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
     state.config = mergeSavedConfig(message.config);
     syncControls();
     render();
+    return;
+  }
+
+  if (message.type === "ai-settings") {
+    state.aiSettings = message.settings;
+    state.apiKeyDrafts = {};
+    renderAiSettingsEditors();
+    render();
+    if (!aiSettingsView.hidden) aiConnectionResult.textContent = "服务配置已保存。";
+    return;
+  }
+
+  if (message.type === "ai-models") {
+    state.modelOptions[message.providerId] = message.models;
+    const provider = state.aiSettings?.providers.find((item) => item.id === message.providerId);
+    if (provider) {
+      provider.resolvedApiFormat = message.resolvedApiFormat;
+      if (!provider.model && message.models.length === 1) {
+        provider.model = message.models[0].id;
+      }
+      renderSettingsModels(provider);
+    }
+    aiFetchModels.disabled = false;
+    aiConnectionResult.textContent = message.models.length
+      ? `连接成功：${resolvedFormatLabel(message.resolvedApiFormat)}，获取到 ${message.models.length} 个模型。`
+      : `连接成功：${resolvedFormatLabel(message.resolvedApiFormat)}，但没有发现可用模型，可手动填写模型 ID。`;
+    renderAiMainControls();
+    return;
+  }
+
+  if (message.type === "ai-analysis-started") {
+    state.aiBusy = true;
+    renderActions();
+    setStatus(`正在分析 0 / ${message.total}…`);
+    return;
+  }
+
+  if (message.type === "ai-analysis-progress") {
+    setStatus(`正在准备并分析 ${message.completed} / ${message.total}…`);
+    return;
+  }
+
+  if (message.type === "ai-analysis-complete") {
+    state.aiSuggestions = Object.fromEntries(message.suggestions.map((suggestion) => [suggestion.nodeId, suggestion.name]));
+    state.aiBusy = false;
+    render();
+    const failed = message.failedNodeIds.length ? `，${message.failedNodeIds.length} 个未能命名` : "";
+    setStatus(`AI 已生成 ${message.suggestions.length} 个语义名称${failed}`, message.failedNodeIds.length ? "warning" : "success");
+    return;
+  }
+
+  if (message.type === "ai-error") {
+    state.aiBusy = false;
+    aiFetchModels.disabled = false;
+    render();
+    setStatus(message.message, "error");
+    if (!aiSettingsView.hidden) aiConnectionResult.textContent = message.message;
     return;
   }
 

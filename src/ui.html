@@ -187,6 +187,24 @@
         cursor: pointer;
       }
 
+      .icon-button {
+        display: inline-grid;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--surface);
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .icon-button:hover:not(:disabled) {
+        border-color: var(--brand);
+        color: var(--brand);
+      }
+
       .grid-2 {
         display: grid;
         gap: 8px;
@@ -205,6 +223,7 @@
 
       input[type="text"],
       input[type="number"],
+      input[type="password"],
       select {
         width: 100%;
         height: 32px;
@@ -216,8 +235,22 @@
       }
 
       input:hover,
+      textarea:hover,
       select:hover {
         border-color: var(--muted);
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 180px;
+        padding: 8px;
+        resize: vertical;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        line-height: 18px;
       }
 
       .scale-group {
@@ -295,6 +328,52 @@
         min-height: 220px;
       }
 
+      .ai-section {
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+
+      .ai-section .grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .ai-provider-summary {
+        min-height: 15px;
+      }
+
+      .preview-toolbar {
+        display: flex;
+        gap: 6px;
+      }
+
+      .ai-analyze-button {
+        display: flex;
+        min-height: 34px;
+        flex: 1 1 auto;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid color-mix(in srgb, var(--brand) 55%, var(--border));
+        border-radius: 7px;
+        background: color-mix(in srgb, var(--brand) 9%, var(--bg));
+        color: var(--brand);
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .ai-analyze-button:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--brand) 15%, var(--bg));
+      }
+
+      .ai-badge {
+        margin-left: 5px;
+        color: var(--brand);
+        font-size: 9px;
+        font-weight: 600;
+      }
+
       .preview-list {
         display: flex;
         min-height: 120px;
@@ -334,6 +413,12 @@
 
       .preview-renamed {
         font-weight: 500;
+      }
+
+      .preview-renamed.is-editable {
+        cursor: text;
+        text-decoration: underline dotted color-mix(in srgb, var(--brand) 48%, transparent);
+        text-underline-offset: 3px;
       }
 
       .empty-state,
@@ -394,6 +479,116 @@
 
       .primary-button:hover:not(:disabled) {
         background: var(--brand-hover);
+      }
+
+      .settings-view {
+        position: fixed;
+        z-index: 20;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+      }
+
+      .settings-view[hidden],
+      [hidden] {
+        display: none !important;
+      }
+
+      .settings-header {
+        display: flex;
+        min-height: 48px;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .settings-header h2 {
+        flex: 1 1 auto;
+        font-size: 13px;
+      }
+
+      .settings-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3px;
+        margin: 10px 12px 0;
+        padding: 3px;
+        border-radius: 7px;
+        background: var(--surface);
+      }
+
+      .settings-tab {
+        min-height: 29px;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .settings-tab.is-active {
+        background: var(--bg);
+        color: var(--text);
+        box-shadow: 0 1px 3px color-mix(in srgb, var(--text) 12%, transparent);
+        font-weight: 600;
+      }
+
+      .settings-content {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        padding: 12px;
+      }
+
+      .settings-panel {
+        display: flex;
+        max-width: 680px;
+        flex-direction: column;
+        gap: 12px;
+        margin: 0 auto;
+      }
+
+      .settings-actions,
+      .library-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .secondary-button {
+        min-height: 32px;
+        padding: 0 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .secondary-button:hover:not(:disabled) {
+        border-color: var(--brand);
+        color: var(--brand);
+      }
+
+      .settings-save {
+        min-height: 34px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 7px;
+        background: var(--brand);
+        color: var(--brand-text);
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .connection-result {
+        padding: 8px 10px;
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--muted);
+        line-height: 17px;
       }
 
       @media (min-width: 560px) {
@@ -486,9 +681,35 @@
         </section>
 
         <section class="preview-panel">
+          <section class="section ai-section">
+            <div class="section-heading">
+              <h2>AI 语义命名</h2>
+              <button class="icon-button" id="ai-settings-button" type="button" title="AI 设置" aria-label="打开 AI 设置">⚙</button>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="ai-model-select">模型</label>
+                <select id="ai-model-select">
+                  <option value="">请先配置模型</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="ai-strategy-select">命名策略</label>
+                <select id="ai-strategy-select">
+                  <option value="">通用素材命名</option>
+                </select>
+              </div>
+            </div>
+            <p class="helper ai-provider-summary" id="ai-provider-summary">尚未配置 AI 服务</p>
+          </section>
+
           <div class="section-heading">
             <h2>文件名预览</h2>
             <span class="helper" id="preview-summary">0 个文件</span>
+          </div>
+          <div class="preview-toolbar">
+            <button class="ai-analyze-button" id="ai-analyze-button" type="button">✦ AI 分析当前选择</button>
+            <button class="icon-button" id="ai-clear-button" type="button" title="清除 AI 结果" aria-label="清除 AI 结果" hidden>↺</button>
           </div>
           <div class="preview-list" id="preview-list"></div>
         </section>
@@ -499,6 +720,111 @@
         <button class="primary-button" id="export-button" type="button" disabled>打包下载</button>
       </footer>
     </main>
+
+    <section class="settings-view" id="ai-settings-view" aria-label="AI 设置" hidden>
+      <header class="settings-header">
+        <button class="icon-button" id="ai-settings-back" type="button" aria-label="返回">←</button>
+        <h2>AI 设置</h2>
+      </header>
+
+      <nav class="settings-tabs" aria-label="AI 设置分类">
+        <button class="settings-tab is-active" type="button" data-settings-tab="connection">服务配置</button>
+        <button class="settings-tab" type="button" data-settings-tab="prompts">提示词模板</button>
+        <button class="settings-tab" type="button" data-settings-tab="skills">Skill</button>
+      </nav>
+
+      <div class="settings-content">
+        <section class="settings-panel" data-settings-panel="connection">
+          <div class="field">
+            <label for="ai-provider-select">AI 服务</label>
+            <div class="grid-2">
+              <select id="ai-provider-select"></select>
+              <div class="settings-actions">
+                <button class="secondary-button" id="ai-provider-add" type="button">新增</button>
+                <button class="secondary-button" id="ai-provider-delete" type="button">删除</button>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="ai-provider-name">服务名称</label>
+            <input id="ai-provider-name" type="text" maxlength="80" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="ai-api-format">接口格式</label>
+            <select id="ai-api-format">
+              <option value="auto">自动识别（推荐）</option>
+              <option value="gemini-native">Gemini 原生</option>
+              <option value="openai-compatible">OpenAI 兼容</option>
+              <option value="anthropic-compatible">Anthropic 兼容</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ai-base-url">Base URL</label>
+            <input id="ai-base-url" type="text" autocomplete="off" spellcheck="false" placeholder="https://api.example.com/v1" />
+          </div>
+          <div class="field">
+            <label for="ai-api-key">API Key</label>
+            <input id="ai-api-key" type="password" autocomplete="off" placeholder="输入新 Key；留空则保留已保存的 Key" />
+            <p class="helper" id="ai-key-helper">完整 Key 保存后不会重新显示。</p>
+          </div>
+          <div class="connection-result" id="ai-connection-result">填写连接信息后获取模型。</div>
+          <div class="settings-actions">
+            <button class="secondary-button" id="ai-fetch-models" type="button">测试并获取模型</button>
+          </div>
+          <div class="field">
+            <label for="ai-settings-model">视觉模型</label>
+            <select id="ai-settings-model">
+              <option value="">请先获取模型</option>
+            </select>
+            <input id="ai-manual-model" type="text" autocomplete="off" placeholder="模型列表不可用时，可手动填写模型 ID" />
+          </div>
+          <button class="settings-save" id="ai-save-connection" type="button">保存服务配置</button>
+        </section>
+
+        <section class="settings-panel" data-settings-panel="prompts" hidden>
+          <div class="field">
+            <label for="ai-prompt-library">提示词模板</label>
+            <select id="ai-prompt-library"></select>
+          </div>
+          <div class="library-toolbar">
+            <button class="secondary-button" id="ai-prompt-new" type="button">新建</button>
+            <button class="secondary-button" id="ai-prompt-import" type="button">导入</button>
+            <button class="secondary-button" id="ai-prompt-delete" type="button">删除</button>
+            <input id="ai-prompt-file" type="file" accept=".txt,.md,.json,text/plain,application/json" hidden />
+          </div>
+          <div class="field">
+            <label for="ai-prompt-name">名称</label>
+            <input id="ai-prompt-name" type="text" maxlength="80" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="ai-prompt-content">提示词内容</label>
+            <textarea id="ai-prompt-content" maxlength="20000" spellcheck="false"></textarea>
+          </div>
+          <button class="settings-save" id="ai-save-prompt" type="button">保存提示词</button>
+        </section>
+
+        <section class="settings-panel" data-settings-panel="skills" hidden>
+          <div class="field">
+            <label for="ai-skill-library">Skill</label>
+            <select id="ai-skill-library"></select>
+          </div>
+          <div class="library-toolbar">
+            <button class="secondary-button" id="ai-skill-upload" type="button">上传 .md / .txt</button>
+            <button class="secondary-button" id="ai-skill-delete" type="button">删除</button>
+            <input id="ai-skill-file" type="file" accept=".md,.txt,text/markdown,text/plain" hidden />
+          </div>
+          <div class="field">
+            <label for="ai-skill-name">名称</label>
+            <input id="ai-skill-name" type="text" maxlength="100" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="ai-skill-content">规则内容</label>
+            <textarea id="ai-skill-content" maxlength="64000" spellcheck="false"></textarea>
+          </div>
+          <button class="settings-save" id="ai-save-skill" type="button">保存 Skill</button>
+        </section>
+      </div>
+    </section>
     <script src="./ui.js"></script>
   </body>
 </html>
