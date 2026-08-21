@@ -43,11 +43,11 @@ AI 分析成功后，语义名称会自动替代 `{name}` 的输入值，因此�
 
 ## 开发
 
-- `npm run watch`：监听并重新构建。
-- `npm run build`：生成开发产物，并在 `dist/dev-mode-asset-renamer-local_<version>/` 生成可独立导入的版本发布目录。
+- `npm run watch`：在 `dist/` 根目录生成开发产物并持续监听源码变化。
+- `npm run build`：只在 `dist/dev-mode-asset-renamer-local_<version>/` 生成可独立导入的版本发布目录。
 - `npm run check`：执行类型检查、命名规则测试和生产构建。
 
-日常开发可继续从项目根目录导入 `manifest.json`。构建后的交付版本应导入版本目录中的清单，例如：
+日常开发请先运行 `npm run watch`，再从项目根目录导入 `manifest.json`。执行 `npm run build` 后，交付版本应导入版本目录中的清单，例如：
 
 ```text
 dist/dev-mode-asset-renamer-local_1.4.0/

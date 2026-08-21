@@ -1,5 +1,5 @@
 import { build, context } from "esbuild";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,6 +24,7 @@ const packageVersion = safeDirectorySegment(packageJson.version, "package.json v
 const releaseName = `${pluginId}_${packageVersion}`;
 const releaseDirectory = resolve(distDirectory, releaseName);
 const releaseAssetsDirectory = resolve(releaseDirectory, "dist");
+const buildAssetsDirectory = watchMode ? distDirectory : releaseAssetsDirectory;
 
 const sharedOptions = {
   bundle: true,
@@ -35,24 +36,25 @@ const codeOptions = {
   ...sharedOptions,
   entryPoints: [resolve(projectRoot, "src/code.ts")],
   format: "iife",
-  outfile: resolve(distDirectory, "code.js")
+  outfile: resolve(buildAssetsDirectory, "code.js")
 };
 
 const uiOptions = {
   ...sharedOptions,
   entryPoints: [resolve(projectRoot, "src/ui.ts")],
   format: "iife",
-  outfile: resolve(distDirectory, "ui.js")
+  outfile: resolve(buildAssetsDirectory, "ui.js")
 };
 
 function prepareDist() {
   rmSync(distDirectory, { recursive: true, force: true });
-  mkdirSync(distDirectory, { recursive: true });
+  mkdirSync(buildAssetsDirectory, { recursive: true });
 }
 
 function inlineUiScript() {
   const html = readFileSync(resolve(projectRoot, "src/ui.html"), "utf8");
-  const javascript = readFileSync(resolve(distDirectory, "ui.js"), "utf8").replace(
+  const uiScriptPath = resolve(buildAssetsDirectory, "ui.js");
+  const javascript = readFileSync(uiScriptPath, "utf8").replace(
     /<\/script/gi,
     "<\\/script"
   );
@@ -60,20 +62,18 @@ function inlineUiScript() {
     /<script[^>]*src=["']\.\/ui\.js["'][^>]*><\/script>/i,
     `<script>\n${javascript}\n</script>`
   );
-  writeFileSync(resolve(distDirectory, "ui.html"), output, "utf8");
+  writeFileSync(resolve(buildAssetsDirectory, "ui.html"), output, "utf8");
+  if (!watchMode) {
+    rmSync(uiScriptPath, { force: true });
+  }
 }
 
 function writeReleasePackage() {
-  const codePath = resolve(distDirectory, "code.js");
-  const uiPath = resolve(distDirectory, "ui.html");
+  const codePath = resolve(releaseAssetsDirectory, "code.js");
+  const uiPath = resolve(releaseAssetsDirectory, "ui.html");
   if (!existsSync(codePath) || !existsSync(uiPath)) {
-    throw new Error("发布包生成失败：缺少 dist/code.js 或 dist/ui.html");
+    throw new Error("发布包生成失败：版本目录中缺少 dist/code.js 或 dist/ui.html");
   }
-
-  rmSync(releaseDirectory, { recursive: true, force: true });
-  mkdirSync(releaseAssetsDirectory, { recursive: true });
-  copyFileSync(codePath, resolve(releaseAssetsDirectory, "code.js"));
-  copyFileSync(uiPath, resolve(releaseAssetsDirectory, "ui.html"));
 
   const releaseManifest = {
     ...manifest,
