@@ -124,9 +124,50 @@
   // src/ai.ts
   var MAX_RESPONSE_BYTES = 512 * 1024;
   var REQUEST_TIMEOUT_MS = 9e4;
+  function parseHttpUrl(raw) {
+    const match = /^(https?):\/\/([^/?#]+)(\/[^?#]*)?$/iu.exec(raw);
+    if (!match) {
+      throw new Error("Base URL \u683C\u5F0F\u4E0D\u6B63\u786E\uFF0C\u4E14\u4E0D\u80FD\u5305\u542B\u67E5\u8BE2\u53C2\u6570\u6216\u951A\u70B9");
+    }
+    const protocol = `${match[1].toLowerCase()}:`;
+    const authority = match[2];
+    if (authority.includes("@") || /\s/u.test(authority)) {
+      throw new Error("Base URL \u4E0D\u80FD\u5305\u542B\u8D26\u53F7\u6216\u7A7A\u683C");
+    }
+    let hostname;
+    let port = "";
+    if (authority.startsWith("[")) {
+      const ipv6 = /^\[([0-9a-f:.]+)\](?::(\d{1,5}))?$/iu.exec(authority);
+      if (!ipv6) throw new Error("Base URL \u4E3B\u673A\u683C\u5F0F\u4E0D\u6B63\u786E");
+      hostname = ipv6[1].toLowerCase();
+      port = ipv6[2] || "";
+    } else {
+      const host = /^([^:]+)(?::(\d{1,5}))?$/u.exec(authority);
+      if (!host) throw new Error("Base URL \u4E3B\u673A\u683C\u5F0F\u4E0D\u6B63\u786E");
+      hostname = host[1].toLowerCase();
+      port = host[2] || "";
+    }
+    if (!hostname || port && Number(port) > 65535) {
+      throw new Error("Base URL \u4E3B\u673A\u6216\u7AEF\u53E3\u683C\u5F0F\u4E0D\u6B63\u786E");
+    }
+    return {
+      protocol,
+      hostname,
+      origin: `${protocol}//${authority}`,
+      pathname: match[3] || "/"
+    };
+  }
+  function utf8ByteLength(value) {
+    let bytes = 0;
+    for (const character of value) {
+      const codePoint = character.codePointAt(0) || 0;
+      bytes += codePoint <= 127 ? 1 : codePoint <= 2047 ? 2 : codePoint <= 65535 ? 3 : 4;
+    }
+    return bytes;
+  }
   function detectAiApiFormat(baseUrl) {
-    const url = new URL(baseUrl);
-    const host = url.hostname.toLowerCase();
+    const url = parseHttpUrl(baseUrl);
+    const host = url.hostname;
     const path = url.pathname.replace(/\/+$/u, "").toLowerCase();
     if (path.endsWith(":generatecontent") || /(?:^|\/)v1beta(?:\/|$)/u.test(path)) {
       return "gemini-native";
@@ -153,27 +194,25 @@
     if (!value) {
       throw new Error("\u8BF7\u586B\u5199 Base URL");
     }
-    const url = new URL(value);
+    const url = parseHttpUrl(value);
     const isLocalHttp = url.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
     if (url.protocol !== "https:" && !isLocalHttp) {
       throw new Error("Base URL \u5FC5\u987B\u4F7F\u7528 HTTPS\uFF1B\u672C\u5730\u5F00\u53D1\u53EF\u4F7F\u7528 localhost");
     }
-    if (url.username || url.password || url.search || url.hash) {
-      throw new Error("Base URL \u4E0D\u80FD\u5305\u542B\u8D26\u53F7\u3001\u67E5\u8BE2\u53C2\u6570\u6216\u951A\u70B9");
-    }
     return value;
   }
   function modelsEndpoint(baseUrl, format) {
-    const url = new URL(baseUrl);
-    const path = url.pathname.replace(/\/+$/u, "");
+    const parsed = parseHttpUrl(baseUrl);
+    const path = parsed.pathname.replace(/\/+$/u, "");
+    let nextPath;
     if (format === "gemini-native") {
-      url.pathname = /\/models\/[^/]+:generateContent$/iu.test(path) ? path.replace(/\/models\/[^/]+:generateContent$/iu, "/models") : /\/(?:v1|v1beta)$/iu.test(path) ? `${path}/models` : path === "" || path === "/" ? "/v1beta/models" : `${path}/models`;
+      nextPath = /\/models\/[^/]+:generateContent$/iu.test(path) ? path.replace(/\/models\/[^/]+:generateContent$/iu, "/models") : /\/(?:v1|v1beta)$/iu.test(path) ? `${path}/models` : path === "" || path === "/" ? "/v1beta/models" : `${path}/models`;
     } else if (format === "anthropic-compatible") {
-      url.pathname = /\/(?:v1\/)?messages$/iu.test(path) ? path.replace(/\/(?:v1\/)?messages$/iu, "/v1/models") : /\/v1$/iu.test(path) ? `${path}/models` : path === "" || path === "/" ? "/v1/models" : `${path}/models`;
+      nextPath = /\/(?:v1\/)?messages$/iu.test(path) ? path.replace(/\/(?:v1\/)?messages$/iu, "/v1/models") : /\/v1$/iu.test(path) ? `${path}/models` : path === "" || path === "/" ? "/v1/models" : `${path}/models`;
     } else {
-      url.pathname = /\/(?:chat\/completions|responses)$/iu.test(path) ? path.replace(/\/(?:chat\/completions|responses)$/iu, "/models") : /\/v1$/iu.test(path) ? `${path}/models` : path === "" || path === "/" ? "/v1/models" : `${path}/models`;
+      nextPath = /\/(?:chat\/completions|responses)$/iu.test(path) ? path.replace(/\/(?:chat\/completions|responses)$/iu, "/models") : /\/v1$/iu.test(path) ? `${path}/models` : path === "" || path === "/" ? "/v1/models" : `${path}/models`;
     }
-    return url.toString();
+    return `${parsed.origin}${nextPath}`;
   }
   function requestHeaders(format, apiKey) {
     if (format === "gemini-native") {
@@ -189,16 +228,20 @@
     return { "content-type": "application/json", authorization: `Bearer ${apiKey}` };
   }
   async function fetchJson(endpoint, init, fetchImpl = fetch) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    const timer = setTimeout(() => controller?.abort(), REQUEST_TIMEOUT_MS);
     try {
-      const response = await fetchImpl(endpoint, { ...init, signal: controller.signal, redirect: "error" });
+      const response = await fetchImpl(endpoint, {
+        ...init,
+        ...controller ? { signal: controller.signal } : {},
+        redirect: "error"
+      });
       const declaredLength = Number(response.headers.get("content-length") || 0);
       if (declaredLength > MAX_RESPONSE_BYTES) {
         throw new Error("AI \u670D\u52A1\u54CD\u5E94\u8FC7\u5927");
       }
       const text = await response.text();
-      if (new TextEncoder().encode(text).byteLength > MAX_RESPONSE_BYTES) {
+      if (utf8ByteLength(text) > MAX_RESPONSE_BYTES) {
         throw new Error("AI \u670D\u52A1\u54CD\u5E94\u8FC7\u5927");
       }
       if (!response.ok) {
@@ -211,7 +254,7 @@
       }
       return value;
     } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
+      if (error && typeof error === "object" && "name" in error && error.name === "AbortError") {
         throw new Error("AI \u670D\u52A1\u8BF7\u6C42\u8D85\u65F6");
       }
       throw error;
@@ -274,7 +317,7 @@
   }
   function openAiEndpoint(baseUrl) {
     const trimmed = baseUrl.replace(/\/+$/u, "");
-    const path = new URL(trimmed).pathname.toLowerCase();
+    const path = parseHttpUrl(trimmed).pathname.toLowerCase();
     if (path.endsWith("/responses")) return { endpoint: trimmed, responses: true };
     if (path.endsWith("/chat/completions")) return { endpoint: trimmed, responses: false };
     if (path.endsWith("/v1")) return { endpoint: `${trimmed}/chat/completions`, responses: false };
@@ -283,7 +326,7 @@
   }
   function geminiEndpoint(baseUrl, model) {
     const trimmed = baseUrl.replace(/\/+$/u, "");
-    const path = new URL(trimmed).pathname.toLowerCase();
+    const path = parseHttpUrl(trimmed).pathname.toLowerCase();
     if (path.endsWith(":generatecontent")) return trimmed;
     if (/(?:^|\/)v1(?:beta)?$/u.test(path)) {
       return `${trimmed}/models/${encodeURIComponent(model)}:generateContent`;
@@ -292,7 +335,7 @@
   }
   function anthropicEndpoint(baseUrl) {
     const trimmed = baseUrl.replace(/\/+$/u, "");
-    const path = new URL(trimmed).pathname.toLowerCase();
+    const path = parseHttpUrl(trimmed).pathname.toLowerCase();
     if (path.endsWith("/messages")) return trimmed;
     if (path.endsWith("/v1")) return `${trimmed}/messages`;
     return `${trimmed}/v1/messages`;

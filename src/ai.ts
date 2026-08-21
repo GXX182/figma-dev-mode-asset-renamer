@@ -22,9 +22,60 @@ export type AiProviderRequest = {
 const MAX_RESPONSE_BYTES = 512 * 1024;
 const REQUEST_TIMEOUT_MS = 90_000;
 
+type ParsedHttpUrl = {
+  protocol: "http:" | "https:";
+  hostname: string;
+  origin: string;
+  pathname: string;
+};
+
+function parseHttpUrl(raw: string): ParsedHttpUrl {
+  const match = /^(https?):\/\/([^/?#]+)(\/[^?#]*)?$/iu.exec(raw);
+  if (!match) {
+    throw new Error("Base URL 格式不正确，且不能包含查询参数或锚点");
+  }
+  const protocol = `${match[1].toLowerCase()}:` as ParsedHttpUrl["protocol"];
+  const authority = match[2];
+  if (authority.includes("@") || /\s/u.test(authority)) {
+    throw new Error("Base URL 不能包含账号或空格");
+  }
+
+  let hostname: string;
+  let port = "";
+  if (authority.startsWith("[")) {
+    const ipv6 = /^\[([0-9a-f:.]+)\](?::(\d{1,5}))?$/iu.exec(authority);
+    if (!ipv6) throw new Error("Base URL 主机格式不正确");
+    hostname = ipv6[1].toLowerCase();
+    port = ipv6[2] || "";
+  } else {
+    const host = /^([^:]+)(?::(\d{1,5}))?$/u.exec(authority);
+    if (!host) throw new Error("Base URL 主机格式不正确");
+    hostname = host[1].toLowerCase();
+    port = host[2] || "";
+  }
+  if (!hostname || (port && Number(port) > 65_535)) {
+    throw new Error("Base URL 主机或端口格式不正确");
+  }
+  return {
+    protocol,
+    hostname,
+    origin: `${protocol}//${authority}`,
+    pathname: match[3] || "/"
+  };
+}
+
+function utf8ByteLength(value: string): number {
+  let bytes = 0;
+  for (const character of value) {
+    const codePoint = character.codePointAt(0) || 0;
+    bytes += codePoint <= 0x7f ? 1 : codePoint <= 0x7ff ? 2 : codePoint <= 0xffff ? 3 : 4;
+  }
+  return bytes;
+}
+
 export function detectAiApiFormat(baseUrl: string): ResolvedAiApiFormat {
-  const url = new URL(baseUrl);
-  const host = url.hostname.toLowerCase();
+  const url = parseHttpUrl(baseUrl);
+  const host = url.hostname;
   const path = url.pathname.replace(/\/+$/u, "").toLowerCase();
 
   if (path.endsWith(":generatecontent") || /(?:^|\/)v1beta(?:\/|$)/u.test(path)) {
@@ -54,22 +105,20 @@ export function validateAiBaseUrl(raw: string): string {
   if (!value) {
     throw new Error("请填写 Base URL");
   }
-  const url = new URL(value);
+  const url = parseHttpUrl(value);
   const isLocalHttp = url.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
   if (url.protocol !== "https:" && !isLocalHttp) {
     throw new Error("Base URL 必须使用 HTTPS；本地开发可使用 localhost");
-  }
-  if (url.username || url.password || url.search || url.hash) {
-    throw new Error("Base URL 不能包含账号、查询参数或锚点");
   }
   return value;
 }
 
 function modelsEndpoint(baseUrl: string, format: ResolvedAiApiFormat): string {
-  const url = new URL(baseUrl);
-  const path = url.pathname.replace(/\/+$/u, "");
+  const parsed = parseHttpUrl(baseUrl);
+  const path = parsed.pathname.replace(/\/+$/u, "");
+  let nextPath: string;
   if (format === "gemini-native") {
-    url.pathname = /\/models\/[^/]+:generateContent$/iu.test(path)
+    nextPath = /\/models\/[^/]+:generateContent$/iu.test(path)
       ? path.replace(/\/models\/[^/]+:generateContent$/iu, "/models")
       : /\/(?:v1|v1beta)$/iu.test(path)
         ? `${path}/models`
@@ -77,7 +126,7 @@ function modelsEndpoint(baseUrl: string, format: ResolvedAiApiFormat): string {
           ? "/v1beta/models"
           : `${path}/models`;
   } else if (format === "anthropic-compatible") {
-    url.pathname = /\/(?:v1\/)?messages$/iu.test(path)
+    nextPath = /\/(?:v1\/)?messages$/iu.test(path)
       ? path.replace(/\/(?:v1\/)?messages$/iu, "/v1/models")
       : /\/v1$/iu.test(path)
         ? `${path}/models`
@@ -85,7 +134,7 @@ function modelsEndpoint(baseUrl: string, format: ResolvedAiApiFormat): string {
           ? "/v1/models"
           : `${path}/models`;
   } else {
-    url.pathname = /\/(?:chat\/completions|responses)$/iu.test(path)
+    nextPath = /\/(?:chat\/completions|responses)$/iu.test(path)
       ? path.replace(/\/(?:chat\/completions|responses)$/iu, "/models")
       : /\/v1$/iu.test(path)
         ? `${path}/models`
@@ -93,7 +142,7 @@ function modelsEndpoint(baseUrl: string, format: ResolvedAiApiFormat): string {
           ? "/v1/models"
           : `${path}/models`;
   }
-  return url.toString();
+  return `${parsed.origin}${nextPath}`;
 }
 
 function requestHeaders(format: ResolvedAiApiFormat, apiKey: string): Record<string, string> {
@@ -115,16 +164,20 @@ async function fetchJson(
   init: RequestInit,
   fetchImpl: typeof fetch = fetch
 ): Promise<Record<string, unknown>> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const controller = typeof AbortController === "function" ? new AbortController() : null;
+  const timer = setTimeout(() => controller?.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const response = await fetchImpl(endpoint, { ...init, signal: controller.signal, redirect: "error" });
+    const response = await fetchImpl(endpoint, {
+      ...init,
+      ...(controller ? { signal: controller.signal } : {}),
+      redirect: "error"
+    });
     const declaredLength = Number(response.headers.get("content-length") || 0);
     if (declaredLength > MAX_RESPONSE_BYTES) {
       throw new Error("AI 服务响应过大");
     }
     const text = await response.text();
-    if (new TextEncoder().encode(text).byteLength > MAX_RESPONSE_BYTES) {
+    if (utf8ByteLength(text) > MAX_RESPONSE_BYTES) {
       throw new Error("AI 服务响应过大");
     }
     if (!response.ok) {
@@ -137,7 +190,7 @@ async function fetchJson(
     }
     return value as Record<string, unknown>;
   } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
+    if (error && typeof error === "object" && "name" in error && error.name === "AbortError") {
       throw new Error("AI 服务请求超时");
     }
     throw error;
@@ -213,7 +266,7 @@ export async function listAiModels(
 
 function openAiEndpoint(baseUrl: string): { endpoint: string; responses: boolean } {
   const trimmed = baseUrl.replace(/\/+$/u, "");
-  const path = new URL(trimmed).pathname.toLowerCase();
+  const path = parseHttpUrl(trimmed).pathname.toLowerCase();
   if (path.endsWith("/responses")) return { endpoint: trimmed, responses: true };
   if (path.endsWith("/chat/completions")) return { endpoint: trimmed, responses: false };
   if (path.endsWith("/v1")) return { endpoint: `${trimmed}/chat/completions`, responses: false };
@@ -223,7 +276,7 @@ function openAiEndpoint(baseUrl: string): { endpoint: string; responses: boolean
 
 function geminiEndpoint(baseUrl: string, model: string): string {
   const trimmed = baseUrl.replace(/\/+$/u, "");
-  const path = new URL(trimmed).pathname.toLowerCase();
+  const path = parseHttpUrl(trimmed).pathname.toLowerCase();
   if (path.endsWith(":generatecontent")) return trimmed;
   if (/(?:^|\/)v1(?:beta)?$/u.test(path)) {
     return `${trimmed}/models/${encodeURIComponent(model)}:generateContent`;
@@ -233,7 +286,7 @@ function geminiEndpoint(baseUrl: string, model: string): string {
 
 function anthropicEndpoint(baseUrl: string): string {
   const trimmed = baseUrl.replace(/\/+$/u, "");
-  const path = new URL(trimmed).pathname.toLowerCase();
+  const path = parseHttpUrl(trimmed).pathname.toLowerCase();
   if (path.endsWith("/messages")) return trimmed;
   if (path.endsWith("/v1")) return `${trimmed}/messages`;
   return `${trimmed}/v1/messages`;

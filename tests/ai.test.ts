@@ -4,6 +4,17 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
+const originalUrlDescriptor = Object.getOwnPropertyDescriptor(globalThis, "URL");
+Object.defineProperty(globalThis, "URL", { configurable: true, writable: true, value: undefined });
+try {
+  assert(
+    detectAiApiFormat("https://openai-compatible.example.com/v1/chat/completions") === "openai-compatible",
+    "协议识别不应依赖 Figma 主线程缺失的 URL 全局对象"
+  );
+} finally {
+  if (originalUrlDescriptor) Object.defineProperty(globalThis, "URL", originalUrlDescriptor);
+}
+
 assert(
   detectAiApiFormat("https://generativelanguage.googleapis.com/v1beta") === "gemini-native",
   "Gemini 协议自动识别失败"
@@ -39,6 +50,21 @@ const modelResult = await listAiModels({
 assert(modelsRequestUrl === "https://relay.example.com/v1/models", `模型地址推导失败：${modelsRequestUrl}`);
 assert(modelsAuthorization === "Bearer test-secret", "OpenAI 鉴权头错误");
 assert(modelResult.models.map((model) => model.id).join(",") === "vision-2,vision-10", "模型列表排序失败");
+
+let completeChatModelsUrl = "";
+await listAiModels({
+  apiFormat: "auto",
+  baseUrl: "https://opencode.ai/zen/go/v1/chat/completions",
+  apiKey: "test-secret",
+  model: ""
+}, async (input) => {
+  completeChatModelsUrl = String(input);
+  return new Response(JSON.stringify({ data: [] }), { status: 200 });
+});
+assert(
+  completeChatModelsUrl === "https://opencode.ai/zen/go/v1/models",
+  `完整 Chat Completions 地址的模型路径推导失败：${completeChatModelsUrl}`
+);
 
 let geminiModelsUrl = "";
 let geminiKey = "";
