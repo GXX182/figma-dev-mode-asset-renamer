@@ -9,6 +9,7 @@ import type {
   AiApiFormat,
   AiModelOption,
   AiProviderProfileView,
+  AiRequestDiagnostic,
   AiSettingsView,
   AiSkill,
   ExportConfig,
@@ -86,6 +87,15 @@ const aiBaseUrl = element<HTMLInputElement>("ai-base-url");
 const aiApiKey = element<HTMLInputElement>("ai-api-key");
 const aiKeyHelper = element<HTMLParagraphElement>("ai-key-helper");
 const aiConnectionResult = element<HTMLDivElement>("ai-connection-result");
+const aiRequestDiagnostic = element<HTMLDetailsElement>("ai-request-diagnostic");
+const aiDiagnosticState = element<HTMLSpanElement>("ai-diagnostic-state");
+const aiDiagnosticPhase = element<HTMLElement>("ai-diagnostic-phase");
+const aiDiagnosticStatus = element<HTMLElement>("ai-diagnostic-status");
+const aiDiagnosticRequest = element<HTMLElement>("ai-diagnostic-request");
+const aiDiagnosticError = element<HTMLElement>("ai-diagnostic-error");
+const aiDiagnosticResponse = element<HTMLElement>("ai-diagnostic-response");
+const aiDiagnosticCause = element<HTMLParagraphElement>("ai-diagnostic-cause");
+const aiCopyDiagnostic = element<HTMLButtonElement>("ai-copy-diagnostic");
 const aiFetchModels = element<HTMLButtonElement>("ai-fetch-models");
 const aiSettingsModel = element<HTMLSelectElement>("ai-settings-model");
 const aiManualModel = element<HTMLInputElement>("ai-manual-model");
@@ -138,6 +148,42 @@ function mergeSavedConfig(saved: Partial<ExportConfig> | null): ExportConfig {
 
 function postMessage(message: UiToPluginMessage): void {
   parent.postMessage({ pluginMessage: message }, "*");
+}
+
+let currentAiDiagnostic: AiRequestDiagnostic | undefined;
+
+function aiDiagnosticText(diagnostic: AiRequestDiagnostic): string {
+  const statusText = diagnostic.responseAvailable && diagnostic.status !== null
+    ? `${diagnostic.status}${diagnostic.statusText ? ` ${diagnostic.statusText}` : ""}`
+    : "未收到可读取的 HTTP 响应";
+  return [
+    `阶段：${diagnostic.phase === "models" ? "获取模型" : "图片分析"}`,
+    `请求：${diagnostic.method} ${diagnostic.endpoint}`,
+    `HTTP 状态：${statusText}`,
+    `错误：${diagnostic.error}`,
+    `可能原因：${diagnostic.probableCause}`,
+    `响应摘要：${diagnostic.responsePreview || "Figma 未向插件暴露响应头或响应体。"}`
+  ].join("\n");
+}
+
+function renderAiDiagnostic(diagnostic?: AiRequestDiagnostic): void {
+  currentAiDiagnostic = diagnostic;
+  aiRequestDiagnostic.hidden = !diagnostic;
+  if (!diagnostic) {
+    aiRequestDiagnostic.open = false;
+    return;
+  }
+  aiRequestDiagnostic.open = true;
+  aiDiagnosticState.textContent = diagnostic.responseAvailable ? "已收到响应" : "未收到响应";
+  aiDiagnosticPhase.textContent = diagnostic.phase === "models" ? "获取模型" : "图片分析";
+  aiDiagnosticStatus.textContent = diagnostic.responseAvailable && diagnostic.status !== null
+    ? `${diagnostic.status}${diagnostic.statusText ? ` ${diagnostic.statusText}` : ""}`
+    : "不可用";
+  aiDiagnosticRequest.textContent = `${diagnostic.method} ${diagnostic.endpoint}`;
+  aiDiagnosticError.textContent = diagnostic.error;
+  aiDiagnosticResponse.textContent = diagnostic.responsePreview || "Figma 未向插件暴露响应头或响应体。";
+  aiDiagnosticCause.textContent = diagnostic.probableCause;
+  aiCopyDiagnostic.textContent = "复制诊断信息";
 }
 
 function syncControls(): void {
@@ -631,11 +677,31 @@ aiSettingsModel.addEventListener("change", () => {
   aiManualModel.value = aiSettingsModel.value;
 });
 
+aiCopyDiagnostic.addEventListener("click", async () => {
+  if (!currentAiDiagnostic) return;
+  const diagnostic = aiDiagnosticText(currentAiDiagnostic);
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable");
+    await navigator.clipboard.writeText(diagnostic);
+  } catch {
+    const input = document.createElement("textarea");
+    input.value = diagnostic;
+    input.style.position = "fixed";
+    input.style.opacity = "0";
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand("copy");
+    input.remove();
+  }
+  aiCopyDiagnostic.textContent = "已复制";
+});
+
 aiFetchModels.addEventListener("click", () => {
   const provider = updateActiveProviderFromForm();
   if (!provider) return;
   aiFetchModels.disabled = true;
   aiConnectionResult.textContent = "正在连接并获取模型…";
+  renderAiDiagnostic();
   postMessage({
     type: "list-ai-models",
     provider,
@@ -859,6 +925,7 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
       renderSettingsModels(provider);
     }
     aiFetchModels.disabled = false;
+    renderAiDiagnostic();
     aiConnectionResult.textContent = message.models.length
       ? `连接成功：${resolvedFormatLabel(message.resolvedApiFormat)}，获取到 ${message.models.length} 个模型。`
       : `连接成功：${resolvedFormatLabel(message.resolvedApiFormat)}，但没有发现可用模型，可手动填写模型 ID。`;
@@ -892,6 +959,7 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
     aiFetchModels.disabled = false;
     render();
     setStatus(message.message, "error");
+    renderAiDiagnostic(message.diagnostic);
     if (!aiSettingsView.hidden) aiConnectionResult.textContent = message.message;
     return;
   }

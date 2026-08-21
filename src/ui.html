@@ -591,6 +591,85 @@
         line-height: 17px;
       }
 
+      .request-diagnostic {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--bg);
+      }
+
+      .request-diagnostic summary {
+        display: flex;
+        min-height: 34px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 10px;
+        cursor: pointer;
+        font-weight: 600;
+        list-style: none;
+      }
+
+      .request-diagnostic summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .diagnostic-state {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 400;
+      }
+
+      .diagnostic-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+        border-top: 1px solid var(--border);
+      }
+
+      .diagnostic-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin: 0;
+      }
+
+      .diagnostic-grid div,
+      .diagnostic-block {
+        min-width: 0;
+      }
+
+      .diagnostic-grid dt,
+      .diagnostic-block > span {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .diagnostic-grid dd {
+        margin: 0;
+        font-weight: 600;
+      }
+
+      .diagnostic-block code,
+      .diagnostic-block pre {
+        display: block;
+        max-height: 128px;
+        margin: 0;
+        padding: 8px;
+        overflow: auto;
+        border-radius: 5px;
+        background: var(--surface);
+        color: var(--text);
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 11px;
+        line-height: 16px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
       @media (min-width: 560px) {
         .content {
           grid-template-columns: minmax(280px, 0.9fr) minmax(300px, 1.1fr);
@@ -768,6 +847,40 @@
             <p class="helper" id="ai-key-helper">完整 Key 保存后不会重新显示。</p>
           </div>
           <div class="connection-result" id="ai-connection-result">填写连接信息后获取模型。</div>
+          <details class="request-diagnostic" id="ai-request-diagnostic" hidden>
+            <summary>
+              <span>请求诊断</span>
+              <span class="diagnostic-state" id="ai-diagnostic-state">未收到响应</span>
+            </summary>
+            <div class="diagnostic-body">
+              <dl class="diagnostic-grid">
+                <div>
+                  <dt>阶段</dt>
+                  <dd id="ai-diagnostic-phase">—</dd>
+                </div>
+                <div>
+                  <dt>HTTP 状态</dt>
+                  <dd id="ai-diagnostic-status">—</dd>
+                </div>
+              </dl>
+              <div class="diagnostic-block">
+                <span>请求</span>
+                <code id="ai-diagnostic-request">—</code>
+              </div>
+              <div class="diagnostic-block">
+                <span>错误</span>
+                <pre id="ai-diagnostic-error">—</pre>
+              </div>
+              <div class="diagnostic-block">
+                <span>响应摘要</span>
+                <pre id="ai-diagnostic-response">—</pre>
+              </div>
+              <p class="helper" id="ai-diagnostic-cause"></p>
+              <div class="settings-actions">
+                <button class="secondary-button" id="ai-copy-diagnostic" type="button">复制诊断信息</button>
+              </div>
+            </div>
+          </details>
           <div class="settings-actions">
             <button class="secondary-button" id="ai-fetch-models" type="button">测试并获取模型</button>
           </div>

@@ -80,6 +80,18 @@ export type AiSuggestion = {
   confidence: number | null;
 };
 
+export type AiRequestDiagnostic = {
+  phase: "models" | "analysis";
+  method: "GET" | "POST";
+  endpoint: string;
+  status: number | null;
+  statusText: string;
+  responsePreview: string;
+  error: string;
+  responseAvailable: boolean;
+  probableCause: string;
+};
+
 export type SelectionMessage = {
   type: "selection";
   items: ExportableNodeInfo[];
@@ -104,7 +116,7 @@ export type PluginToUiMessage =
   | { type: "ai-analysis-started"; total: number }
   | { type: "ai-analysis-progress"; completed: number; total: number }
   | { type: "ai-analysis-complete"; suggestions: AiSuggestion[]; failedNodeIds: string[] }
-  | { type: "ai-error"; message: string }
+  | { type: "ai-error"; message: string; diagnostic?: AiRequestDiagnostic }
   | { type: "export-started"; total: number }
   | { type: "export-progress"; completed: number; total: number; currentName: string }
   | { type: "export-complete"; files: ExportedFile[]; failedNames: string[] }

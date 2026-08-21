@@ -124,6 +124,13 @@
   // src/ai.ts
   var MAX_RESPONSE_BYTES = 512 * 1024;
   var REQUEST_TIMEOUT_MS = 9e4;
+  var AiRequestFailure = class extends Error {
+    constructor(message, diagnostic) {
+      super(message);
+      this.name = "AiRequestFailure";
+      this.diagnostic = diagnostic;
+    }
+  };
   function parseHttpUrl(raw) {
     const match = /^(https?):\/\/([^/?#]+)(\/[^?#]*)?$/iu.exec(raw);
     if (!match) {
@@ -185,6 +192,37 @@
       return label;
     };
     return visit(error, 0).slice(0, 500) || fallback;
+  }
+  function getAiRequestDiagnostic(error) {
+    if (!error || typeof error !== "object") return void 0;
+    const diagnostic = error.diagnostic;
+    if (!diagnostic || typeof diagnostic !== "object" || Array.isArray(diagnostic)) return void 0;
+    const value = diagnostic;
+    if (value.phase !== "models" && value.phase !== "analysis" || value.method !== "GET" && value.method !== "POST" || typeof value.endpoint !== "string") return void 0;
+    return diagnostic;
+  }
+  function sensitiveHeaderValues(headers) {
+    if (!headers) return [];
+    const pairs = [];
+    if (Array.isArray(headers)) {
+      for (const [name, value] of headers) pairs.push([name, value]);
+    } else if (typeof headers.forEach === "function") {
+      headers.forEach((value, name) => pairs.push([name, value]));
+    } else {
+      for (const [name, value] of Object.entries(headers)) pairs.push([name, value]);
+    }
+    return pairs.flatMap(([name, value]) => {
+      const normalized = name.toLowerCase();
+      if (!normalized.includes("authorization") && !normalized.includes("api-key") && !normalized.includes("api_key")) {
+        return [];
+      }
+      return [value, value.replace(/^bearer\s+/iu, "")].filter((item) => item.length >= 4);
+    });
+  }
+  function safeResponsePreview(value, secrets = []) {
+    let preview = value.replace(/data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=]+/giu, "[\u56FE\u7247\u6570\u636E\u5DF2\u9690\u85CF]").replace(/(bearer\s+)[^\s,;]+/giu, "$1\u2022\u2022\u2022\u2022").replace(/("(?:api[_-]?key|authorization|x-goog-api-key)"\s*:\s*")[^"]*(")/giu, "$1\u2022\u2022\u2022\u2022$2");
+    for (const secret of secrets) preview = preview.split(secret).join("\u2022\u2022\u2022\u2022");
+    return preview.replace(/\s+/gu, " ").trim().slice(0, 800);
   }
   function responseHeader(response, name) {
     const compatible = response;
@@ -259,8 +297,10 @@
     }
     return { "content-type": "application/json", authorization: `Bearer ${apiKey}` };
   }
-  async function fetchJson(endpoint, init, fetchImpl = fetch) {
+  async function fetchJson(endpoint, init, fetchImpl = fetch, phase = "analysis") {
     let timer;
+    const method = init.method === "GET" ? "GET" : "POST";
+    const requestSecrets = sensitiveHeaderValues(init.headers);
     try {
       const response = await Promise.race([
         fetchImpl(endpoint, { ...init, redirect: "error" }),
@@ -270,23 +310,91 @@
       ]);
       const declaredLength = Number(responseHeader(response, "content-length") || 0);
       if (declaredLength > MAX_RESPONSE_BYTES) {
-        throw new Error("AI \u670D\u52A1\u54CD\u5E94\u8FC7\u5927");
+        throw new AiRequestFailure("AI \u670D\u52A1\u54CD\u5E94\u8FC7\u5927", {
+          phase,
+          method,
+          endpoint,
+          status: response.status,
+          statusText: response.statusText || "",
+          responsePreview: "",
+          error: `\u54CD\u5E94 Content-Length \u4E3A ${declaredLength} \u5B57\u8282\uFF0C\u8D85\u8FC7 512 KB \u9650\u5236`,
+          responseAvailable: true,
+          probableCause: "\u670D\u52A1\u8FD4\u56DE\u5185\u5BB9\u8D85\u8FC7\u63D2\u4EF6\u7684\u5B89\u5168\u8BFB\u53D6\u9650\u5236\u3002"
+        });
       }
       const text = await response.text();
+      const responsePreview = safeResponsePreview(text, requestSecrets);
       if (utf8ByteLength(text) > MAX_RESPONSE_BYTES) {
-        throw new Error("AI \u670D\u52A1\u54CD\u5E94\u8FC7\u5927");
+        throw new AiRequestFailure("AI \u670D\u52A1\u54CD\u5E94\u8FC7\u5927", {
+          phase,
+          method,
+          endpoint,
+          status: response.status,
+          statusText: response.statusText || "",
+          responsePreview,
+          error: "AI \u670D\u52A1\u54CD\u5E94\u8D85\u8FC7 512 KB \u9650\u5236",
+          responseAvailable: true,
+          probableCause: "\u670D\u52A1\u8FD4\u56DE\u5185\u5BB9\u8D85\u8FC7\u63D2\u4EF6\u7684\u5B89\u5168\u8BFB\u53D6\u9650\u5236\u3002"
+        });
       }
       if (!response.ok) {
-        const summary = text.replace(/\s+/g, " ").slice(0, 240);
-        throw new Error(`AI \u670D\u52A1\u8FD4\u56DE ${response.status}${summary ? `\uFF1A${summary}` : ""}`);
+        const message = `AI \u670D\u52A1\u8FD4\u56DE ${response.status}${responsePreview ? `\uFF1A${responsePreview.slice(0, 240)}` : ""}`;
+        throw new AiRequestFailure(message, {
+          phase,
+          method,
+          endpoint,
+          status: response.status,
+          statusText: response.statusText || "",
+          responsePreview,
+          error: message,
+          responseAvailable: true,
+          probableCause: "\u670D\u52A1\u5DF2\u7ECF\u8FD4\u56DE HTTP \u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5 API Key\u3001\u6A21\u578B\u6743\u9650\u6216\u63A5\u53E3\u8DEF\u5F84\u3002"
+        });
       }
-      const value = JSON.parse(text);
+      let value;
+      try {
+        value = JSON.parse(text);
+      } catch {
+        throw new AiRequestFailure("AI \u670D\u52A1\u8FD4\u56DE\u7684\u4E0D\u662F\u6709\u6548 JSON", {
+          phase,
+          method,
+          endpoint,
+          status: response.status,
+          statusText: response.statusText || "",
+          responsePreview,
+          error: "\u54CD\u5E94 JSON \u89E3\u6790\u5931\u8D25",
+          responseAvailable: true,
+          probableCause: "\u63A5\u53E3\u8DEF\u5F84\u53EF\u80FD\u6307\u5411\u7F51\u9875\u3001\u7F51\u5173\u9519\u8BEF\u9875\u6216\u975E\u517C\u5BB9 API\u3002"
+        });
+      }
       if (!value || typeof value !== "object" || Array.isArray(value)) {
-        throw new Error("AI \u670D\u52A1\u8FD4\u56DE\u7684\u4E0D\u662F\u6709\u6548 JSON");
+        throw new AiRequestFailure("AI \u670D\u52A1\u8FD4\u56DE\u7684\u4E0D\u662F\u6709\u6548 JSON \u5BF9\u8C61", {
+          phase,
+          method,
+          endpoint,
+          status: response.status,
+          statusText: response.statusText || "",
+          responsePreview,
+          error: "\u54CD\u5E94\u4E0D\u662F JSON \u5BF9\u8C61",
+          responseAvailable: true,
+          probableCause: "\u670D\u52A1\u8FD4\u56DE\u7ED3\u6784\u4E0E\u5F53\u524D\u63A5\u53E3\u534F\u8BAE\u4E0D\u517C\u5BB9\u3002"
+        });
       }
       return value;
     } catch (error) {
-      throw new Error(formatAiError(error));
+      if (getAiRequestDiagnostic(error)) throw error;
+      const message = formatAiError(error);
+      throw new AiRequestFailure(message, {
+        phase,
+        method,
+        endpoint,
+        status: null,
+        statusText: "",
+        responsePreview: "",
+        error: message,
+        responseAvailable: false,
+        probableCause: message.toLowerCase().includes("failed to fetch") ? "Figma \u6CA1\u6709\u6536\u5230\u53EF\u8BFB\u53D6\u7684\u54CD\u5E94\uFF0C\u5E38\u89C1\u539F\u56E0\u662F CORS\u3001TLS\u3001DNS\u3001\u4EE3\u7406\u6216\u63D2\u4EF6\u7F51\u7EDC\u6743\u9650\u62E6\u622A\u3002" : "\u8BF7\u6C42\u5728\u6536\u5230\u53EF\u8BFB\u53D6\u7684 HTTP \u54CD\u5E94\u524D\u5931\u8D25\u3002"
+      });
     } finally {
       if (timer !== void 0) clearTimeout(timer);
     }
@@ -315,7 +423,7 @@
     const body = await fetchJson(modelsEndpoint(baseUrl, resolvedApiFormat), {
       method: "GET",
       headers: requestHeaders(resolvedApiFormat, request.apiKey)
-    }, fetchImpl);
+    }, fetchImpl, "models");
     let models;
     if (resolvedApiFormat === "gemini-native") {
       models = records(body.models).flatMap((item) => {
@@ -507,7 +615,12 @@ ${assets}`
         }]
       };
     }
-    const response = await fetchJson(endpoint, { method: "POST", headers, body: JSON.stringify(body) }, fetchImpl);
+    const response = await fetchJson(
+      endpoint,
+      { method: "POST", headers, body: JSON.stringify(body) },
+      fetchImpl,
+      "analysis"
+    );
     const answer = answerText(response, format, responses);
     if (!answer) {
       throw new Error("AI \u670D\u52A1\u6CA1\u6709\u8FD4\u56DE\u547D\u540D\u5185\u5BB9");
@@ -695,7 +808,12 @@ ${assets}`
         resolvedApiFormat: result.resolvedApiFormat
       });
     } catch (error) {
-      postMessage({ type: "ai-error", message: formatAiError(error) });
+      const diagnostic = getAiRequestDiagnostic(error);
+      postMessage({
+        type: "ai-error",
+        message: formatAiError(error),
+        ...diagnostic ? { diagnostic } : {}
+      });
     }
   }
   async function saveSettings(config) {
@@ -822,6 +940,7 @@ ${assets}`
     const failedNodeIds = [];
     let completed = 0;
     let lastError = "";
+    let lastDiagnostic;
     for (let offset = 0; offset < nodes.length; offset += AI_BATCH_SIZE) {
       const batch = nodes.slice(offset, offset + AI_BATCH_SIZE);
       const images = [];
@@ -867,13 +986,18 @@ ${assets}`
         }
       } catch (error) {
         lastError = formatAiError(error);
+        lastDiagnostic = getAiRequestDiagnostic(error);
         for (const image of images) {
           if (!failedNodeIds.includes(image.id)) failedNodeIds.push(image.id);
         }
       }
     }
     if (suggestions.length === 0) {
-      postMessage({ type: "ai-error", message: lastError || "AI \u672A\u80FD\u751F\u6210\u6709\u6548\u7684\u8BED\u4E49\u540D\u79F0" });
+      postMessage({
+        type: "ai-error",
+        message: lastError || "AI \u672A\u80FD\u751F\u6210\u6709\u6548\u7684\u8BED\u4E49\u540D\u79F0",
+        ...lastDiagnostic ? { diagnostic: lastDiagnostic } : {}
+      });
       return;
     }
     postMessage({ type: "ai-analysis-complete", suggestions, failedNodeIds });

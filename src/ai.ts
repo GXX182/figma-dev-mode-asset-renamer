@@ -1,6 +1,7 @@
 import type {
   AiApiFormat,
   AiModelOption,
+  AiRequestDiagnostic,
   AiSuggestion,
   ExportableNodeInfo,
   ResolvedAiApiFormat
@@ -21,6 +22,16 @@ export type AiProviderRequest = {
 
 const MAX_RESPONSE_BYTES = 512 * 1024;
 const REQUEST_TIMEOUT_MS = 90_000;
+
+class AiRequestFailure extends Error {
+  diagnostic: AiRequestDiagnostic;
+
+  constructor(message: string, diagnostic: AiRequestDiagnostic) {
+    super(message);
+    this.name = "AiRequestFailure";
+    this.diagnostic = diagnostic;
+  }
+}
 
 type ParsedHttpUrl = {
   protocol: "http:" | "https:";
@@ -97,6 +108,48 @@ export function formatAiError(error: unknown, fallback = "AI 服务请求失败�
     return label;
   };
   return visit(error, 0).slice(0, 500) || fallback;
+}
+
+export function getAiRequestDiagnostic(error: unknown): AiRequestDiagnostic | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const diagnostic = (error as { diagnostic?: unknown }).diagnostic;
+  if (!diagnostic || typeof diagnostic !== "object" || Array.isArray(diagnostic)) return undefined;
+  const value = diagnostic as Record<string, unknown>;
+  if ((value.phase !== "models" && value.phase !== "analysis")
+    || (value.method !== "GET" && value.method !== "POST")
+    || typeof value.endpoint !== "string") return undefined;
+  return diagnostic as AiRequestDiagnostic;
+}
+
+function sensitiveHeaderValues(headers: HeadersInit | undefined): string[] {
+  if (!headers) return [];
+  const pairs: Array<[string, string]> = [];
+  if (Array.isArray(headers)) {
+    for (const [name, value] of headers) pairs.push([name, value]);
+  } else if (typeof (headers as Headers).forEach === "function") {
+    (headers as Headers).forEach((value, name) => pairs.push([name, value]));
+  } else {
+    for (const [name, value] of Object.entries(headers as Record<string, string>)) pairs.push([name, value]);
+  }
+  return pairs.flatMap(([name, value]) => {
+    const normalized = name.toLowerCase();
+    if (!normalized.includes("authorization") && !normalized.includes("api-key") && !normalized.includes("api_key")) {
+      return [];
+    }
+    return [value, value.replace(/^bearer\s+/iu, "")].filter((item) => item.length >= 4);
+  });
+}
+
+function safeResponsePreview(value: string, secrets: string[] = []): string {
+  let preview = value
+    .replace(/data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=]+/giu, "[图片数据已隐藏]")
+    .replace(/(bearer\s+)[^\s,;]+/giu, "$1••••")
+    .replace(/("(?:api[_-]?key|authorization|x-goog-api-key)"\s*:\s*")[^"]*(")/giu, "$1••••$2");
+  for (const secret of secrets) preview = preview.split(secret).join("••••");
+  return preview
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, 800);
 }
 
 function responseHeader(response: Response, name: string): string {
@@ -200,9 +253,12 @@ function requestHeaders(format: ResolvedAiApiFormat, apiKey: string): Record<str
 async function fetchJson(
   endpoint: string,
   init: RequestInit,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  phase: AiRequestDiagnostic["phase"] = "analysis"
 ): Promise<Record<string, unknown>> {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const method = init.method === "GET" ? "GET" : "POST";
+  const requestSecrets = sensitiveHeaderValues(init.headers);
   try {
     const response = await Promise.race([
       fetchImpl(endpoint, { ...init, redirect: "error" }),
@@ -212,23 +268,93 @@ async function fetchJson(
     ]);
     const declaredLength = Number(responseHeader(response, "content-length") || 0);
     if (declaredLength > MAX_RESPONSE_BYTES) {
-      throw new Error("AI 服务响应过大");
+      throw new AiRequestFailure("AI 服务响应过大", {
+        phase,
+        method,
+        endpoint,
+        status: response.status,
+        statusText: response.statusText || "",
+        responsePreview: "",
+        error: `响应 Content-Length 为 ${declaredLength} 字节，超过 512 KB 限制`,
+        responseAvailable: true,
+        probableCause: "服务返回内容超过插件的安全读取限制。"
+      });
     }
     const text = await response.text();
+    const responsePreview = safeResponsePreview(text, requestSecrets);
     if (utf8ByteLength(text) > MAX_RESPONSE_BYTES) {
-      throw new Error("AI 服务响应过大");
+      throw new AiRequestFailure("AI 服务响应过大", {
+        phase,
+        method,
+        endpoint,
+        status: response.status,
+        statusText: response.statusText || "",
+        responsePreview,
+        error: "AI 服务响应超过 512 KB 限制",
+        responseAvailable: true,
+        probableCause: "服务返回内容超过插件的安全读取限制。"
+      });
     }
     if (!response.ok) {
-      const summary = text.replace(/\s+/g, " ").slice(0, 240);
-      throw new Error(`AI 服务返回 ${response.status}${summary ? `：${summary}` : ""}`);
+      const message = `AI 服务返回 ${response.status}${responsePreview ? `：${responsePreview.slice(0, 240)}` : ""}`;
+      throw new AiRequestFailure(message, {
+        phase,
+        method,
+        endpoint,
+        status: response.status,
+        statusText: response.statusText || "",
+        responsePreview,
+        error: message,
+        responseAvailable: true,
+        probableCause: "服务已经返回 HTTP 错误，请检查 API Key、模型权限或接口路径。"
+      });
     }
-    const value = JSON.parse(text) as unknown;
+    let value: unknown;
+    try {
+      value = JSON.parse(text) as unknown;
+    } catch {
+      throw new AiRequestFailure("AI 服务返回的不是有效 JSON", {
+        phase,
+        method,
+        endpoint,
+        status: response.status,
+        statusText: response.statusText || "",
+        responsePreview,
+        error: "响应 JSON 解析失败",
+        responseAvailable: true,
+        probableCause: "接口路径可能指向网页、网关错误页或非兼容 API。"
+      });
+    }
     if (!value || typeof value !== "object" || Array.isArray(value)) {
-      throw new Error("AI 服务返回的不是有效 JSON");
+      throw new AiRequestFailure("AI 服务返回的不是有效 JSON 对象", {
+        phase,
+        method,
+        endpoint,
+        status: response.status,
+        statusText: response.statusText || "",
+        responsePreview,
+        error: "响应不是 JSON 对象",
+        responseAvailable: true,
+        probableCause: "服务返回结构与当前接口协议不兼容。"
+      });
     }
     return value as Record<string, unknown>;
   } catch (error) {
-    throw new Error(formatAiError(error));
+    if (getAiRequestDiagnostic(error)) throw error;
+    const message = formatAiError(error);
+    throw new AiRequestFailure(message, {
+      phase,
+      method,
+      endpoint,
+      status: null,
+      statusText: "",
+      responsePreview: "",
+      error: message,
+      responseAvailable: false,
+      probableCause: message.toLowerCase().includes("failed to fetch")
+        ? "Figma 没有收到可读取的响应，常见原因是 CORS、TLS、DNS、代理或插件网络权限拦截。"
+        : "请求在收到可读取的 HTTP 响应前失败。"
+    });
   } finally {
     if (timer !== undefined) clearTimeout(timer);
   }
@@ -265,7 +391,7 @@ export async function listAiModels(
   const body = await fetchJson(modelsEndpoint(baseUrl, resolvedApiFormat), {
     method: "GET",
     headers: requestHeaders(resolvedApiFormat, request.apiKey)
-  }, fetchImpl);
+  }, fetchImpl, "models");
 
   let models: AiModelOption[];
   if (resolvedApiFormat === "gemini-native") {
@@ -478,7 +604,12 @@ export async function analyzeAiImages(
         };
   }
 
-  const response = await fetchJson(endpoint, { method: "POST", headers, body: JSON.stringify(body) }, fetchImpl);
+  const response = await fetchJson(
+    endpoint,
+    { method: "POST", headers, body: JSON.stringify(body) },
+    fetchImpl,
+    "analysis"
+  );
   const answer = answerText(response, format, responses);
   if (!answer) {
     throw new Error("AI 服务没有返回命名内容");

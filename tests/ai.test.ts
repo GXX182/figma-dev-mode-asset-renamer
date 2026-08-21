@@ -1,4 +1,10 @@
-import { analyzeAiImages, detectAiApiFormat, formatAiError, listAiModels } from "../src/ai";
+import {
+  analyzeAiImages,
+  detectAiApiFormat,
+  formatAiError,
+  getAiRequestDiagnostic,
+  listAiModels
+} from "../src/ai";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -52,6 +58,43 @@ const figmaResponseModels = await listAiModels({
   text: async () => JSON.stringify({ data: [{ id: "vision-model" }] })
 }) as unknown as Response);
 assert(figmaResponseModels.models[0]?.id === "vision-model", "Figma FetchResponse 兼容失败");
+
+let networkFailure: unknown;
+try {
+  await listAiModels({
+    apiFormat: "openai-compatible",
+    baseUrl: "https://blocked.example.com/v1",
+    apiKey: "test-secret",
+    model: ""
+  }, async () => Promise.reject({ message: "Failed to fetch" }));
+} catch (error) {
+  networkFailure = error;
+}
+const networkDiagnostic = getAiRequestDiagnostic(networkFailure);
+assert(networkDiagnostic?.endpoint === "https://blocked.example.com/v1/models", "网络错误应保留实际请求地址");
+assert(networkDiagnostic.responseAvailable === false, "网络错误不应伪造 HTTP 响应");
+assert(networkDiagnostic.status === null, "未收到响应时不应伪造状态码");
+assert(networkDiagnostic.probableCause.includes("CORS"), "Failed to fetch 应提示常见的网络拦截原因");
+
+let httpFailure: unknown;
+try {
+  await listAiModels({
+    apiFormat: "openai-compatible",
+    baseUrl: "https://relay.example.com/v1",
+    apiKey: "test-secret",
+    model: ""
+  }, async () => new Response(JSON.stringify({ error: { message: "Invalid API key test-secret" } }), {
+    status: 401,
+    statusText: "Unauthorized"
+  }));
+} catch (error) {
+  httpFailure = error;
+}
+const httpDiagnostic = getAiRequestDiagnostic(httpFailure);
+assert(httpDiagnostic?.responseAvailable === true, "HTTP 错误应标记为已收到响应");
+assert(httpDiagnostic.status === 401, "HTTP 错误应保留真实状态码");
+assert(httpDiagnostic.responsePreview.includes("Invalid API key"), "HTTP 错误应保留安全响应摘要");
+assert(!httpDiagnostic.responsePreview.includes("test-secret"), "响应摘要不应泄漏请求中的 API Key");
 
 let modelsRequestUrl = "";
 let modelsAuthorization = "";

@@ -1,8 +1,16 @@
 import { buildDownloadNames, findUnknownTokens } from "./naming";
-import { analyzeAiImages, formatAiError, listAiModels, resolveAiApiFormat, validateAiBaseUrl } from "./ai";
+import {
+  analyzeAiImages,
+  formatAiError,
+  getAiRequestDiagnostic,
+  listAiModels,
+  resolveAiApiFormat,
+  validateAiBaseUrl
+} from "./ai";
 import type {
   AiApiFormat,
   AiProviderProfileView,
+  AiRequestDiagnostic,
   AiSettingsView,
   ExportConfig,
   ExportFormat,
@@ -230,7 +238,12 @@ async function postAiModels(providerView: AiProviderProfileView, suppliedApiKey?
       resolvedApiFormat: result.resolvedApiFormat
     });
   } catch (error) {
-    postMessage({ type: "ai-error", message: formatAiError(error) });
+    const diagnostic = getAiRequestDiagnostic(error);
+    postMessage({
+      type: "ai-error",
+      message: formatAiError(error),
+      ...(diagnostic ? { diagnostic } : {})
+    });
   }
 }
 
@@ -373,6 +386,7 @@ async function analyzeSelection(): Promise<void> {
   const failedNodeIds: string[] = [];
   let completed = 0;
   let lastError = "";
+  let lastDiagnostic: AiRequestDiagnostic | undefined;
 
   for (let offset = 0; offset < nodes.length; offset += AI_BATCH_SIZE) {
     const batch = nodes.slice(offset, offset + AI_BATCH_SIZE);
@@ -419,6 +433,7 @@ async function analyzeSelection(): Promise<void> {
       }
     } catch (error) {
       lastError = formatAiError(error);
+      lastDiagnostic = getAiRequestDiagnostic(error);
       for (const image of images) {
         if (!failedNodeIds.includes(image.id)) failedNodeIds.push(image.id);
       }
@@ -426,7 +441,11 @@ async function analyzeSelection(): Promise<void> {
   }
 
   if (suggestions.length === 0) {
-    postMessage({ type: "ai-error", message: lastError || "AI 未能生成有效的语义名称" });
+    postMessage({
+      type: "ai-error",
+      message: lastError || "AI 未能生成有效的语义名称",
+      ...(lastDiagnostic ? { diagnostic: lastDiagnostic } : {})
+    });
     return;
   }
   postMessage({ type: "ai-analysis-complete", suggestions, failedNodeIds });

@@ -591,6 +591,85 @@
         line-height: 17px;
       }
 
+      .request-diagnostic {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--bg);
+      }
+
+      .request-diagnostic summary {
+        display: flex;
+        min-height: 34px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 10px;
+        cursor: pointer;
+        font-weight: 600;
+        list-style: none;
+      }
+
+      .request-diagnostic summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .diagnostic-state {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 400;
+      }
+
+      .diagnostic-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+        border-top: 1px solid var(--border);
+      }
+
+      .diagnostic-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin: 0;
+      }
+
+      .diagnostic-grid div,
+      .diagnostic-block {
+        min-width: 0;
+      }
+
+      .diagnostic-grid dt,
+      .diagnostic-block > span {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .diagnostic-grid dd {
+        margin: 0;
+        font-weight: 600;
+      }
+
+      .diagnostic-block code,
+      .diagnostic-block pre {
+        display: block;
+        max-height: 128px;
+        margin: 0;
+        padding: 8px;
+        overflow: auto;
+        border-radius: 5px;
+        background: var(--surface);
+        color: var(--text);
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 11px;
+        line-height: 16px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
       @media (min-width: 560px) {
         .content {
           grid-template-columns: minmax(280px, 0.9fr) minmax(300px, 1.1fr);
@@ -768,6 +847,40 @@
             <p class="helper" id="ai-key-helper">完整 Key 保存后不会重新显示。</p>
           </div>
           <div class="connection-result" id="ai-connection-result">填写连接信息后获取模型。</div>
+          <details class="request-diagnostic" id="ai-request-diagnostic" hidden>
+            <summary>
+              <span>请求诊断</span>
+              <span class="diagnostic-state" id="ai-diagnostic-state">未收到响应</span>
+            </summary>
+            <div class="diagnostic-body">
+              <dl class="diagnostic-grid">
+                <div>
+                  <dt>阶段</dt>
+                  <dd id="ai-diagnostic-phase">—</dd>
+                </div>
+                <div>
+                  <dt>HTTP 状态</dt>
+                  <dd id="ai-diagnostic-status">—</dd>
+                </div>
+              </dl>
+              <div class="diagnostic-block">
+                <span>请求</span>
+                <code id="ai-diagnostic-request">—</code>
+              </div>
+              <div class="diagnostic-block">
+                <span>错误</span>
+                <pre id="ai-diagnostic-error">—</pre>
+              </div>
+              <div class="diagnostic-block">
+                <span>响应摘要</span>
+                <pre id="ai-diagnostic-response">—</pre>
+              </div>
+              <p class="helper" id="ai-diagnostic-cause"></p>
+              <div class="settings-actions">
+                <button class="secondary-button" id="ai-copy-diagnostic" type="button">复制诊断信息</button>
+              </div>
+            </div>
+          </details>
           <div class="settings-actions">
             <button class="secondary-button" id="ai-fetch-models" type="button">测试并获取模型</button>
           </div>
@@ -1729,6 +1842,15 @@
   var aiApiKey = element("ai-api-key");
   var aiKeyHelper = element("ai-key-helper");
   var aiConnectionResult = element("ai-connection-result");
+  var aiRequestDiagnostic = element("ai-request-diagnostic");
+  var aiDiagnosticState = element("ai-diagnostic-state");
+  var aiDiagnosticPhase = element("ai-diagnostic-phase");
+  var aiDiagnosticStatus = element("ai-diagnostic-status");
+  var aiDiagnosticRequest = element("ai-diagnostic-request");
+  var aiDiagnosticError = element("ai-diagnostic-error");
+  var aiDiagnosticResponse = element("ai-diagnostic-response");
+  var aiDiagnosticCause = element("ai-diagnostic-cause");
+  var aiCopyDiagnostic = element("ai-copy-diagnostic");
   var aiFetchModels = element("ai-fetch-models");
   var aiSettingsModel = element("ai-settings-model");
   var aiManualModel = element("ai-manual-model");
@@ -1770,6 +1892,35 @@
   }
   function postMessage2(message) {
     parent.postMessage({ pluginMessage: message }, "*");
+  }
+  var currentAiDiagnostic;
+  function aiDiagnosticText(diagnostic) {
+    const statusText = diagnostic.responseAvailable && diagnostic.status !== null ? `${diagnostic.status}${diagnostic.statusText ? ` ${diagnostic.statusText}` : ""}` : "\u672A\u6536\u5230\u53EF\u8BFB\u53D6\u7684 HTTP \u54CD\u5E94";
+    return [
+      `\u9636\u6BB5\uFF1A${diagnostic.phase === "models" ? "\u83B7\u53D6\u6A21\u578B" : "\u56FE\u7247\u5206\u6790"}`,
+      `\u8BF7\u6C42\uFF1A${diagnostic.method} ${diagnostic.endpoint}`,
+      `HTTP \u72B6\u6001\uFF1A${statusText}`,
+      `\u9519\u8BEF\uFF1A${diagnostic.error}`,
+      `\u53EF\u80FD\u539F\u56E0\uFF1A${diagnostic.probableCause}`,
+      `\u54CD\u5E94\u6458\u8981\uFF1A${diagnostic.responsePreview || "Figma \u672A\u5411\u63D2\u4EF6\u66B4\u9732\u54CD\u5E94\u5934\u6216\u54CD\u5E94\u4F53\u3002"}`
+    ].join("\n");
+  }
+  function renderAiDiagnostic(diagnostic) {
+    currentAiDiagnostic = diagnostic;
+    aiRequestDiagnostic.hidden = !diagnostic;
+    if (!diagnostic) {
+      aiRequestDiagnostic.open = false;
+      return;
+    }
+    aiRequestDiagnostic.open = true;
+    aiDiagnosticState.textContent = diagnostic.responseAvailable ? "\u5DF2\u6536\u5230\u54CD\u5E94" : "\u672A\u6536\u5230\u54CD\u5E94";
+    aiDiagnosticPhase.textContent = diagnostic.phase === "models" ? "\u83B7\u53D6\u6A21\u578B" : "\u56FE\u7247\u5206\u6790";
+    aiDiagnosticStatus.textContent = diagnostic.responseAvailable && diagnostic.status !== null ? `${diagnostic.status}${diagnostic.statusText ? ` ${diagnostic.statusText}` : ""}` : "\u4E0D\u53EF\u7528";
+    aiDiagnosticRequest.textContent = `${diagnostic.method} ${diagnostic.endpoint}`;
+    aiDiagnosticError.textContent = diagnostic.error;
+    aiDiagnosticResponse.textContent = diagnostic.responsePreview || "Figma \u672A\u5411\u63D2\u4EF6\u66B4\u9732\u54CD\u5E94\u5934\u6216\u54CD\u5E94\u4F53\u3002";
+    aiDiagnosticCause.textContent = diagnostic.probableCause;
+    aiCopyDiagnostic.textContent = "\u590D\u5236\u8BCA\u65AD\u4FE1\u606F";
   }
   function syncControls() {
     formatSelect.value = state.config.format;
@@ -2192,11 +2343,30 @@
   aiSettingsModel.addEventListener("change", () => {
     aiManualModel.value = aiSettingsModel.value;
   });
+  aiCopyDiagnostic.addEventListener("click", async () => {
+    if (!currentAiDiagnostic) return;
+    const diagnostic = aiDiagnosticText(currentAiDiagnostic);
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable");
+      await navigator.clipboard.writeText(diagnostic);
+    } catch {
+      const input = document.createElement("textarea");
+      input.value = diagnostic;
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      input.remove();
+    }
+    aiCopyDiagnostic.textContent = "\u5DF2\u590D\u5236";
+  });
   aiFetchModels.addEventListener("click", () => {
     const provider = updateActiveProviderFromForm();
     if (!provider) return;
     aiFetchModels.disabled = true;
     aiConnectionResult.textContent = "\u6B63\u5728\u8FDE\u63A5\u5E76\u83B7\u53D6\u6A21\u578B\u2026";
+    renderAiDiagnostic();
     postMessage2({
       type: "list-ai-models",
       provider,
@@ -2403,6 +2573,7 @@
         renderSettingsModels(provider);
       }
       aiFetchModels.disabled = false;
+      renderAiDiagnostic();
       aiConnectionResult.textContent = message.models.length ? `\u8FDE\u63A5\u6210\u529F\uFF1A${resolvedFormatLabel(message.resolvedApiFormat)}\uFF0C\u83B7\u53D6\u5230 ${message.models.length} \u4E2A\u6A21\u578B\u3002` : `\u8FDE\u63A5\u6210\u529F\uFF1A${resolvedFormatLabel(message.resolvedApiFormat)}\uFF0C\u4F46\u6CA1\u6709\u53D1\u73B0\u53EF\u7528\u6A21\u578B\uFF0C\u53EF\u624B\u52A8\u586B\u5199\u6A21\u578B ID\u3002`;
       renderAiMainControls();
       return;
@@ -2430,6 +2601,7 @@
       aiFetchModels.disabled = false;
       render();
       setStatus(message.message, "error");
+      renderAiDiagnostic(message.diagnostic);
       if (!aiSettingsView.hidden) aiConnectionResult.textContent = message.message;
       return;
     }
