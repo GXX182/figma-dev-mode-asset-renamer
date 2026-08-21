@@ -1,0 +1,13 @@
+{
+  "name": "图片命名下载",
+  "id": "dev-mode-asset-renamer-local",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "documentAccess": "dynamic-page",
+  "editorType": ["dev"],
+  "capabilities": ["inspect", "vscode"],
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  }
+}

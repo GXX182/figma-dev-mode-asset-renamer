@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>图片命名下载</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: var(--figma-color-bg, #ffffff);
+        --surface: var(--figma-color-bg-secondary, #f7f7f7);
+        --surface-hover: var(--figma-color-bg-hover, #eeeeee);
+        --border: var(--figma-color-border, #dedede);
+        --text: var(--figma-color-text, #1e1e1e);
+        --muted: var(--figma-color-text-secondary, #6e6e6e);
+        --brand: var(--figma-color-bg-brand, #0d99ff);
+        --brand-hover: var(--figma-color-bg-brand-hover, #0b87e0);
+        --brand-text: var(--figma-color-text-onbrand, #ffffff);
+        --danger: var(--figma-color-text-danger, #d83030);
+        --warning: #9a6700;
+        --success: #198754;
+        --radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+        font-size: 12px;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 1px;
+      }
+
+      button:disabled,
+      input:disabled,
+      select:disabled {
+        cursor: not-allowed;
+        opacity: 0.48;
+      }
+
+      .app {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .topbar {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 46px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 13px;
+        line-height: 20px;
+        font-weight: 600;
+      }
+
+      .mode-badge {
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--brand) 14%, transparent);
+        color: var(--brand);
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      .content {
+        display: grid;
+        flex: 1 1 auto;
+        min-height: 0;
+        grid-template-columns: minmax(0, 1fr);
+        overflow: auto;
+      }
+
+      .settings,
+      .preview-panel {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 14px;
+        padding: 12px;
+      }
+
+      .preview-panel {
+        padding-top: 0;
+      }
+
+      .selection-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 58px;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+
+      .selection-number {
+        display: grid;
+        flex: 0 0 34px;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--brand);
+        color: var(--brand-text);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .selection-title {
+        line-height: 18px;
+        font-weight: 600;
+      }
+
+      .selection-detail,
+      .helper,
+      .template-error {
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 15px;
+      }
+
+      .section {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+
+      .section-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      h2,
+      label {
+        font-size: 11px;
+        line-height: 16px;
+        font-weight: 600;
+      }
+
+      .text-button {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--brand);
+        cursor: pointer;
+      }
+
+      .grid-2 {
+        display: grid;
+        gap: 8px;
+      }
+
+      .grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .field {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      input[type="text"],
+      input[type="number"],
+      select {
+        width: 100%;
+        height: 32px;
+        padding: 0 8px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      input:hover,
+      select:hover {
+        border-color: var(--muted);
+      }
+
+      .scale-group {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 3px;
+        padding: 3px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--surface);
+      }
+
+      .scale-button {
+        height: 26px;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .scale-button:hover:not(:disabled) {
+        background: var(--surface-hover);
+      }
+
+      .scale-button.is-active {
+        background: var(--brand);
+        color: var(--brand-text);
+        font-weight: 600;
+      }
+
+      .is-disabled {
+        opacity: 0.45;
+      }
+
+      .token-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+
+      .token {
+        height: 24px;
+        padding: 0 7px;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        background: var(--surface);
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 10px;
+      }
+
+      .token:hover {
+        border-color: var(--brand);
+        color: var(--brand);
+      }
+
+      .template-error {
+        color: var(--danger);
+      }
+
+      .checkbox-field {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 32px;
+        padding-top: 18px;
+      }
+
+      .checkbox-field label {
+        font-weight: 400;
+      }
+
+      .preview-panel {
+        min-height: 220px;
+      }
+
+      .preview-list {
+        display: flex;
+        min-height: 120px;
+        flex: 1 1 auto;
+        flex-direction: column;
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+
+      .preview-row {
+        display: grid;
+        grid-template-columns: minmax(0, 0.8fr) 18px minmax(0, 1.2fr);
+        align-items: center;
+        min-height: 34px;
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .preview-row:last-child {
+        border-bottom: 0;
+      }
+
+      .preview-original,
+      .preview-renamed {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .preview-original,
+      .preview-arrow,
+      .preview-more {
+        color: var(--muted);
+      }
+
+      .preview-renamed {
+        font-weight: 500;
+      }
+
+      .empty-state,
+      .preview-more {
+        display: grid;
+        min-height: 100px;
+        padding: 12px;
+        place-items: center;
+        text-align: center;
+      }
+
+      .preview-more {
+        min-height: 34px;
+      }
+
+      .footer {
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px 12px 12px;
+        border-top: 1px solid var(--border);
+        background: var(--bg);
+      }
+
+      .status {
+        min-height: 15px;
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 15px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .status[data-tone="success"] {
+        color: var(--success);
+      }
+
+      .status[data-tone="warning"] {
+        color: var(--warning);
+      }
+
+      .status[data-tone="error"] {
+        color: var(--danger);
+      }
+
+      .primary-button {
+        width: 100%;
+        min-height: 36px;
+        border: 0;
+        border-radius: 7px;
+        background: var(--brand);
+        color: var(--brand-text);
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .primary-button:hover:not(:disabled) {
+        background: var(--brand-hover);
+      }
+
+      @media (min-width: 560px) {
+        .content {
+          grid-template-columns: minmax(280px, 0.9fr) minmax(300px, 1.1fr);
+          overflow: hidden;
+        }
+
+        .settings {
+          overflow: auto;
+          border-right: 1px solid var(--border);
+        }
+
+        .preview-panel {
+          min-height: 0;
+          padding-top: 12px;
+          overflow: hidden;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <h1>图片命名下载</h1>
+        <span class="mode-badge">DEV MODE</span>
+      </header>
+
+      <div class="content">
+        <section class="settings">
+          <div class="selection-card">
+            <span class="selection-number" id="selection-count">0</span>
+            <div>
+              <p class="selection-title">当前选择</p>
+              <p class="selection-detail" id="selection-detail">请在画布中选择需要下载的图片或图层</p>
+            </div>
+          </div>
+
+          <section class="section">
+            <h2>导出设置</h2>
+            <div class="grid-2">
+              <div class="field">
+                <label for="format">格式</label>
+                <select id="format">
+                  <option value="PNG">PNG</option>
+                  <option value="JPG">JPG</option>
+                  <option value="SVG">SVG</option>
+                  <option value="PDF">PDF</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>位图倍率</label>
+                <div class="scale-group" id="scale-group" role="group" aria-label="位图倍率">
+                  <button class="scale-button" type="button" data-scale="1">1×</button>
+                  <button class="scale-button" type="button" data-scale="2">2×</button>
+                  <button class="scale-button" type="button" data-scale="3">3×</button>
+                  <button class="scale-button" type="button" data-scale="4">4×</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-heading">
+              <h2>命名规则</h2>
+              <button class="text-button" id="reset-button" type="button">恢复默认</button>
+            </div>
+            <div class="field">
+              <label for="template">模板</label>
+              <input id="template" type="text" autocomplete="off" spellcheck="false" />
+              <p class="template-error" id="template-error" hidden></p>
+            </div>
+            <div class="token-list" id="token-list" aria-label="可插入变量"></div>
+            <p class="helper">点击变量可插入光标位置；即使不使用“序号”，同名文件也会自动补数字。</p>
+            <div class="grid-2">
+              <div class="field">
+                <label for="spaces">空格处理</label>
+                <select id="spaces">
+                  <option value="keep">保留空格</option>
+                  <option value="hyphen">替换为 -</option>
+                  <option value="underscore">替换为 _</option>
+                </select>
+              </div>
+              <div class="checkbox-field">
+                <input id="lowercase" type="checkbox" />
+                <label for="lowercase">全部转为小写</label>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="preview-panel">
+          <div class="section-heading">
+            <h2>文件名预览</h2>
+            <span class="helper" id="preview-summary">0 个文件</span>
+          </div>
+          <div class="preview-list" id="preview-list"></div>
+        </section>
+      </div>
+
+      <footer class="footer">
+        <div class="status" id="status" data-tone="neutral">全部文件将合并为一个 ZIP 下载，不会遗漏或修改 Figma 图层。</div>
+        <button class="primary-button" id="export-button" type="button" disabled>打包下载</button>
+      </footer>
+    </main>
+    <script src="./ui.js"></script>
+  </body>
+</html>

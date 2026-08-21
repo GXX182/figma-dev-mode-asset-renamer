@@ -1,0 +1,12 @@
+node_modules/
+.playwright-cli/
+output/
+
+.DS_Store
+*.log
+npm-debug.log*
+*.zip
+
+.env
+.env.*
+!.env.example
