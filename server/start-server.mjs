@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { get } from "node:http";
+import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -41,7 +42,7 @@ if (await health()) {
 }
 
 const child = spawn(process.execPath, [serverPath], {
-  cwd: serverDirectory,
+  cwd: tmpdir(),
   detached: true,
   stdio: "ignore",
   windowsHide: true

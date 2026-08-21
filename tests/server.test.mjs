@@ -14,6 +14,7 @@ function assert(condition, message) {
 assert(isBlockedAddress("127.0.0.1"), "必须阻止回环地址");
 assert(isBlockedAddress("169.254.169.254"), "必须阻止云元数据地址");
 assert(isBlockedAddress("192.168.1.20"), "必须阻止私有地址");
+assert(isBlockedAddress("198.18.0.158"), "直接填写代理 Fake-IP 时仍应阻止");
 assert(!isBlockedAddress("8.8.8.8"), "不应阻止公开 IPv4 地址");
 
 const normalized = normalizeRelayRequest({
@@ -37,6 +38,11 @@ const publicEndpoint = await validateRelayEndpoint("https://provider.example.tes
 ]));
 assert(publicEndpoint === "https://provider.example.test/v1/models", "公开 HTTPS 地址校验失败");
 
+const proxiedEndpoint = await validateRelayEndpoint("https://opencode.example.test/v1/models", async () => ([
+  { address: "198.18.0.158", family: 4 }
+]));
+assert(proxiedEndpoint === "https://opencode.example.test/v1/models", "域名解析得到代理 Fake-IP 时应允许转发");
+
 const server = createBridgeServer({
   idleTimeoutMs: 0,
   lookupImpl: async () => [{ address: "8.8.8.8", family: 4 }],
@@ -57,6 +63,7 @@ const healthBody = await health.json();
 assert(health.status === 200 && healthBody.service === BRIDGE_SERVICE_NAME, "健康检查接口失败");
 assert(health.headers.get("access-control-allow-origin") === "*", "健康检查缺少 Figma 所需 CORS 响应头");
 assert(health.headers.get("access-control-allow-private-network") === "true", "健康检查缺少本地网络访问响应头");
+assert(health.headers.get("access-control-expose-headers")?.includes("x-asset-renamer-bridge-error"), "诊断响应头未暴露给 Figma");
 
 const forbidden = await fetch(`${origin}/relay`, {
   method: "POST",

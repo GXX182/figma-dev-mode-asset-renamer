@@ -35,6 +35,7 @@ function corsHeaders() {
     "access-control-allow-methods": "GET, POST, OPTIONS",
     "access-control-allow-headers": "content-type",
     "access-control-allow-private-network": "true",
+    "access-control-expose-headers": "x-asset-renamer-bridge, x-asset-renamer-bridge-error",
     "access-control-max-age": "600",
     "cache-control": "no-store",
     "cross-origin-resource-policy": "cross-origin"
@@ -87,6 +88,11 @@ export function isBlockedAddress(rawAddress) {
     || (first === 203 && second === 0 && third === 113);
 }
 
+function isProxyFakeAddress(rawAddress) {
+  const parts = ipv4Parts(String(rawAddress));
+  return Boolean(parts && parts[0] === 198 && (parts[1] === 18 || parts[1] === 19));
+}
+
 export async function validateRelayEndpoint(rawEndpoint, lookupImpl = lookup) {
   if (typeof rawEndpoint !== "string" || rawEndpoint.length === 0 || rawEndpoint.length > 2048) {
     throw new BridgeServiceError(400, "invalid-endpoint", "上游请求地址无效");
@@ -116,7 +122,8 @@ export async function validateRelayEndpoint(rawEndpoint, lookupImpl = lookup) {
   } catch {
     throw new BridgeServiceError(502, "dns-failed", "无法解析上游服务域名");
   }
-  if (!Array.isArray(addresses) || addresses.length === 0 || addresses.some((item) => isBlockedAddress(item.address))) {
+  if (!Array.isArray(addresses) || addresses.length === 0
+    || addresses.some((item) => isBlockedAddress(item.address) && !isProxyFakeAddress(item.address))) {
     throw new BridgeServiceError(403, "blocked-host", "上游域名解析到了私有、回环或保留地址");
   }
   return endpoint.toString();
