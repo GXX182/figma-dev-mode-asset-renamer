@@ -2,6 +2,7 @@ import type {
   AiApiFormat,
   AiModelOption,
   AiRequestDiagnostic,
+  AiRequestTransport,
   AiSuggestion,
   ExportableNodeInfo,
   ResolvedAiApiFormat
@@ -116,6 +117,7 @@ export function getAiRequestDiagnostic(error: unknown): AiRequestDiagnostic | un
   if (!diagnostic || typeof diagnostic !== "object" || Array.isArray(diagnostic)) return undefined;
   const value = diagnostic as Record<string, unknown>;
   if ((value.phase !== "models" && value.phase !== "analysis")
+    || (value.transport !== "direct" && value.transport !== "bridge")
     || (value.method !== "GET" && value.method !== "POST")
     || typeof value.endpoint !== "string") return undefined;
   return diagnostic as AiRequestDiagnostic;
@@ -254,7 +256,8 @@ async function fetchJson(
   endpoint: string,
   init: RequestInit,
   fetchImpl: typeof fetch = fetch,
-  phase: AiRequestDiagnostic["phase"] = "analysis"
+  phase: AiRequestDiagnostic["phase"] = "analysis",
+  transport: AiRequestTransport = "direct"
 ): Promise<Record<string, unknown>> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const method = init.method === "GET" ? "GET" : "POST";
@@ -270,6 +273,7 @@ async function fetchJson(
     if (declaredLength > MAX_RESPONSE_BYTES) {
       throw new AiRequestFailure("AI 服务响应过大", {
         phase,
+        transport,
         method,
         endpoint,
         status: response.status,
@@ -285,6 +289,7 @@ async function fetchJson(
     if (utf8ByteLength(text) > MAX_RESPONSE_BYTES) {
       throw new AiRequestFailure("AI 服务响应过大", {
         phase,
+        transport,
         method,
         endpoint,
         status: response.status,
@@ -297,8 +302,10 @@ async function fetchJson(
     }
     if (!response.ok) {
       const message = `AI 服务返回 ${response.status}${responsePreview ? `：${responsePreview.slice(0, 240)}` : ""}`;
+      const bridgeError = transport === "bridge" && responseHeader(response, "x-asset-renamer-bridge-error") === "1";
       throw new AiRequestFailure(message, {
         phase,
+        transport,
         method,
         endpoint,
         status: response.status,
@@ -306,7 +313,9 @@ async function fetchJson(
         responsePreview,
         error: message,
         responseAvailable: true,
-        probableCause: "服务已经返回 HTTP 错误，请检查 API Key、模型权限或接口路径。"
+        probableCause: bridgeError
+          ? "本地转发服务未能完成请求，请根据响应摘要检查目标地址、DNS、超时或安全限制。"
+          : "上游服务已经返回 HTTP 错误，请检查 API Key、模型权限或接口路径。"
       });
     }
     let value: unknown;
@@ -315,6 +324,7 @@ async function fetchJson(
     } catch {
       throw new AiRequestFailure("AI 服务返回的不是有效 JSON", {
         phase,
+        transport,
         method,
         endpoint,
         status: response.status,
@@ -328,6 +338,7 @@ async function fetchJson(
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       throw new AiRequestFailure("AI 服务返回的不是有效 JSON 对象", {
         phase,
+        transport,
         method,
         endpoint,
         status: response.status,
@@ -344,6 +355,7 @@ async function fetchJson(
     const message = formatAiError(error);
     throw new AiRequestFailure(message, {
       phase,
+      transport,
       method,
       endpoint,
       status: null,
@@ -351,9 +363,11 @@ async function fetchJson(
       responsePreview: "",
       error: message,
       responseAvailable: false,
-      probableCause: message.toLowerCase().includes("failed to fetch")
-        ? "Figma 没有收到可读取的响应，常见原因是 CORS、TLS、DNS、代理或插件网络权限拦截。"
-        : "请求在收到可读取的 HTTP 响应前失败。"
+      probableCause: transport === "bridge"
+        ? "Figma 无法连接本地转发服务，请确认 127.0.0.1:7879 正在监听且没有被防火墙拦截。"
+        : message.toLowerCase().includes("failed to fetch")
+          ? "Figma 没有收到可读取的响应，常见原因是 CORS、TLS、DNS、代理或插件网络权限拦截。"
+          : "请求在收到可读取的 HTTP 响应前失败。"
     });
   } finally {
     if (timer !== undefined) clearTimeout(timer);
@@ -381,7 +395,8 @@ function normalizeModels(models: AiModelOption[]): AiModelOption[] {
 
 export async function listAiModels(
   request: AiProviderRequest,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  transport: AiRequestTransport = "direct"
 ): Promise<{ models: AiModelOption[]; resolvedApiFormat: ResolvedAiApiFormat }> {
   const baseUrl = validateAiBaseUrl(request.baseUrl);
   if (!request.apiKey.trim()) {
@@ -391,7 +406,7 @@ export async function listAiModels(
   const body = await fetchJson(modelsEndpoint(baseUrl, resolvedApiFormat), {
     method: "GET",
     headers: requestHeaders(resolvedApiFormat, request.apiKey)
-  }, fetchImpl, "models");
+  }, fetchImpl, "models", transport);
 
   let models: AiModelOption[];
   if (resolvedApiFormat === "gemini-native") {
@@ -529,7 +544,8 @@ function parseSuggestions(text: string, images: AiImageInput[]): AiSuggestion[] 
 
 export async function analyzeAiImages(
   request: AiProviderRequest & { instructions: string; images: AiImageInput[] },
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  transport: AiRequestTransport = "direct"
 ): Promise<AiSuggestion[]> {
   const baseUrl = validateAiBaseUrl(request.baseUrl);
   const format = resolveAiApiFormat(request.apiFormat, baseUrl);
@@ -608,7 +624,8 @@ export async function analyzeAiImages(
     endpoint,
     { method: "POST", headers, body: JSON.stringify(body) },
     fetchImpl,
-    "analysis"
+    "analysis",
+    transport
   );
   const answer = answerText(response, format, responses);
   if (!answer) {

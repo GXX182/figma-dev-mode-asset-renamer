@@ -591,6 +591,64 @@
         line-height: 17px;
       }
 
+      .bridge-status-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        min-height: 38px;
+        padding: 7px 8px 7px 10px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--surface);
+      }
+
+      .bridge-status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--muted);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted) 13%, transparent);
+      }
+
+      .bridge-status-card[data-state="online"] .bridge-status-dot {
+        background: var(--success);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 14%, transparent);
+      }
+
+      .bridge-status-card[data-state="offline"] .bridge-status-dot {
+        background: var(--danger);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 12%, transparent);
+      }
+
+      .bridge-status-copy {
+        min-width: 0;
+      }
+
+      .bridge-status-copy strong,
+      .bridge-status-copy span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .bridge-status-copy strong {
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .bridge-status-copy span {
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 14px;
+      }
+
+      .bridge-refresh {
+        min-height: 26px;
+        padding: 0 8px;
+      }
+
       .request-diagnostic {
         overflow: hidden;
         border: 1px solid var(--border);
@@ -838,6 +896,23 @@
             </select>
           </div>
           <div class="field">
+            <label for="ai-request-mode">请求方式</label>
+            <select id="ai-request-mode">
+              <option value="auto">自动（优先本地服务）</option>
+              <option value="bridge">仅本地服务</option>
+              <option value="direct">直接连接</option>
+            </select>
+            <p class="helper">自动模式检测到 127.0.0.1:7879 后，模型和图片分析都会经本地服务转发。</p>
+          </div>
+          <div class="bridge-status-card" id="ai-bridge-status" data-state="checking">
+            <span class="bridge-status-dot" aria-hidden="true"></span>
+            <div class="bridge-status-copy">
+              <strong id="ai-bridge-status-text">正在检测本地服务…</strong>
+              <span>http://127.0.0.1:7879</span>
+            </div>
+            <button class="secondary-button bridge-refresh" id="ai-bridge-refresh" type="button">检测</button>
+          </div>
+          <div class="field">
             <label for="ai-base-url">Base URL</label>
             <input id="ai-base-url" type="text" autocomplete="off" spellcheck="false" placeholder="https://api.example.com/v1" />
           </div>
@@ -861,6 +936,10 @@
                 <div>
                   <dt>HTTP 状态</dt>
                   <dd id="ai-diagnostic-status">—</dd>
+                </div>
+                <div>
+                  <dt>请求通道</dt>
+                  <dd id="ai-diagnostic-transport">—</dd>
                 </div>
               </dl>
               <div class="diagnostic-block">

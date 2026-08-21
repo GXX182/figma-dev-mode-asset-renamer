@@ -4,6 +4,7 @@
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/ui.html",
+  "build": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File server/start-server.ps1",
   "documentAccess": "dynamic-page",
   "editorType": [
     "dev"
@@ -16,6 +17,6 @@
     "allowedDomains": [
       "*"
     ],
-    "reasoning": "用户可配置自己的 AI 图片分析服务，插件需要访问其提供的 Base URL 来获取模型并生成语义文件名。"
+    "reasoning": "插件需要访问本机 127.0.0.1:7879 转发服务，并兼容用户选择直接访问其 AI 图片分析服务。"
   }
 }

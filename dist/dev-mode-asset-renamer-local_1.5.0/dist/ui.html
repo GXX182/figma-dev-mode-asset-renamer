@@ -591,6 +591,64 @@
         line-height: 17px;
       }
 
+      .bridge-status-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        min-height: 38px;
+        padding: 7px 8px 7px 10px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: var(--surface);
+      }
+
+      .bridge-status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--muted);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted) 13%, transparent);
+      }
+
+      .bridge-status-card[data-state="online"] .bridge-status-dot {
+        background: var(--success);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 14%, transparent);
+      }
+
+      .bridge-status-card[data-state="offline"] .bridge-status-dot {
+        background: var(--danger);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 12%, transparent);
+      }
+
+      .bridge-status-copy {
+        min-width: 0;
+      }
+
+      .bridge-status-copy strong,
+      .bridge-status-copy span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .bridge-status-copy strong {
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .bridge-status-copy span {
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 14px;
+      }
+
+      .bridge-refresh {
+        min-height: 26px;
+        padding: 0 8px;
+      }
+
       .request-diagnostic {
         overflow: hidden;
         border: 1px solid var(--border);
@@ -838,6 +896,23 @@
             </select>
           </div>
           <div class="field">
+            <label for="ai-request-mode">请求方式</label>
+            <select id="ai-request-mode">
+              <option value="auto">自动（优先本地服务）</option>
+              <option value="bridge">仅本地服务</option>
+              <option value="direct">直接连接</option>
+            </select>
+            <p class="helper">自动模式检测到 127.0.0.1:7879 后，模型和图片分析都会经本地服务转发。</p>
+          </div>
+          <div class="bridge-status-card" id="ai-bridge-status" data-state="checking">
+            <span class="bridge-status-dot" aria-hidden="true"></span>
+            <div class="bridge-status-copy">
+              <strong id="ai-bridge-status-text">正在检测本地服务…</strong>
+              <span>http://127.0.0.1:7879</span>
+            </div>
+            <button class="secondary-button bridge-refresh" id="ai-bridge-refresh" type="button">检测</button>
+          </div>
+          <div class="field">
             <label for="ai-base-url">Base URL</label>
             <input id="ai-base-url" type="text" autocomplete="off" spellcheck="false" placeholder="https://api.example.com/v1" />
           </div>
@@ -861,6 +936,10 @@
                 <div>
                   <dt>HTTP 状态</dt>
                   <dd id="ai-diagnostic-status">—</dd>
+                </div>
+                <div>
+                  <dt>请求通道</dt>
+                  <dd id="ai-diagnostic-transport">—</dd>
                 </div>
               </dl>
               <div class="diagnostic-block">
@@ -1801,6 +1880,7 @@
     aiSettings: null,
     aiBusy: false,
     aiSuggestions: {},
+    bridgeStatus: null,
     modelOptions: {},
     apiKeyDrafts: {}
   };
@@ -1838,6 +1918,10 @@
   var aiProviderDelete = element("ai-provider-delete");
   var aiProviderName = element("ai-provider-name");
   var aiApiFormat = element("ai-api-format");
+  var aiRequestMode = element("ai-request-mode");
+  var aiBridgeStatus = element("ai-bridge-status");
+  var aiBridgeStatusText = element("ai-bridge-status-text");
+  var aiBridgeRefresh = element("ai-bridge-refresh");
   var aiBaseUrl = element("ai-base-url");
   var aiApiKey = element("ai-api-key");
   var aiKeyHelper = element("ai-key-helper");
@@ -1846,6 +1930,7 @@
   var aiDiagnosticState = element("ai-diagnostic-state");
   var aiDiagnosticPhase = element("ai-diagnostic-phase");
   var aiDiagnosticStatus = element("ai-diagnostic-status");
+  var aiDiagnosticTransport = element("ai-diagnostic-transport");
   var aiDiagnosticRequest = element("ai-diagnostic-request");
   var aiDiagnosticError = element("ai-diagnostic-error");
   var aiDiagnosticResponse = element("ai-diagnostic-response");
@@ -1898,6 +1983,7 @@
     const statusText = diagnostic.responseAvailable && diagnostic.status !== null ? `${diagnostic.status}${diagnostic.statusText ? ` ${diagnostic.statusText}` : ""}` : "\u672A\u6536\u5230\u53EF\u8BFB\u53D6\u7684 HTTP \u54CD\u5E94";
     return [
       `\u9636\u6BB5\uFF1A${diagnostic.phase === "models" ? "\u83B7\u53D6\u6A21\u578B" : "\u56FE\u7247\u5206\u6790"}`,
+      `\u8BF7\u6C42\u901A\u9053\uFF1A${diagnostic.transport === "bridge" ? "\u672C\u5730\u670D\u52A1 127.0.0.1:7879" : "Figma \u76F4\u63A5\u8FDE\u63A5"}`,
       `\u8BF7\u6C42\uFF1A${diagnostic.method} ${diagnostic.endpoint}`,
       `HTTP \u72B6\u6001\uFF1A${statusText}`,
       `\u9519\u8BEF\uFF1A${diagnostic.error}`,
@@ -1916,6 +2002,7 @@
     aiDiagnosticState.textContent = diagnostic.responseAvailable ? "\u5DF2\u6536\u5230\u54CD\u5E94" : "\u672A\u6536\u5230\u54CD\u5E94";
     aiDiagnosticPhase.textContent = diagnostic.phase === "models" ? "\u83B7\u53D6\u6A21\u578B" : "\u56FE\u7247\u5206\u6790";
     aiDiagnosticStatus.textContent = diagnostic.responseAvailable && diagnostic.status !== null ? `${diagnostic.status}${diagnostic.statusText ? ` ${diagnostic.statusText}` : ""}` : "\u4E0D\u53EF\u7528";
+    aiDiagnosticTransport.textContent = diagnostic.transport === "bridge" ? "\u672C\u5730\u670D\u52A1" : "\u76F4\u63A5\u8FDE\u63A5";
     aiDiagnosticRequest.textContent = `${diagnostic.method} ${diagnostic.endpoint}`;
     aiDiagnosticError.textContent = diagnostic.error;
     aiDiagnosticResponse.textContent = diagnostic.responsePreview || "Figma \u672A\u5411\u63D2\u4EF6\u66B4\u9732\u54CD\u5E94\u5934\u6216\u54CD\u5E94\u4F53\u3002";
@@ -2026,12 +2113,25 @@
     if (!provider) return;
     aiProviderName.value = provider.name;
     aiApiFormat.value = provider.apiFormat;
+    aiRequestMode.value = settings.requestMode;
     aiBaseUrl.value = provider.baseUrl;
     aiApiKey.value = state.apiKeyDrafts[provider.id] || "";
     aiKeyHelper.textContent = provider.keyConfigured ? `\u5DF2\u4FDD\u5B58\uFF1A${provider.maskedApiKey}\uFF1B\u8F93\u5165\u65B0 Key \u53EF\u66FF\u6362\u3002` : "\u5C1A\u672A\u4FDD\u5B58 API Key\u3002\u5B8C\u6574 Key \u4FDD\u5B58\u540E\u4E0D\u4F1A\u91CD\u65B0\u663E\u793A\u3002";
     aiConnectionResult.textContent = provider.resolvedApiFormat ? `\u5F53\u524D\u8BC6\u522B\uFF1A${resolvedFormatLabel(provider.resolvedApiFormat)}` : "\u586B\u5199\u8FDE\u63A5\u4FE1\u606F\u540E\u83B7\u53D6\u6A21\u578B\u3002";
     renderSettingsModels(provider);
     aiProviderDelete.disabled = settings.providers.length <= 1;
+  }
+  function renderBridgeStatus() {
+    const bridge = state.bridgeStatus;
+    if (!bridge) {
+      aiBridgeStatus.dataset.state = "checking";
+      aiBridgeStatusText.textContent = "\u6B63\u5728\u68C0\u6D4B\u672C\u5730\u670D\u52A1\u2026";
+      aiBridgeRefresh.disabled = true;
+      return;
+    }
+    aiBridgeStatus.dataset.state = bridge.available ? "online" : "offline";
+    aiBridgeStatusText.textContent = bridge.message;
+    aiBridgeRefresh.disabled = false;
   }
   function renderSettingsModels(provider) {
     const models = state.modelOptions[provider.id] || [];
@@ -2073,6 +2173,7 @@
   }
   function renderAiSettingsEditors() {
     renderProviderForm();
+    renderBridgeStatus();
     renderPromptEditor();
     renderSkillEditor();
   }
@@ -2268,6 +2369,7 @@
     if (!settings || !provider) return null;
     provider.name = aiProviderName.value.trim() || "AI \u670D\u52A1";
     provider.apiFormat = aiApiFormat.value;
+    settings.requestMode = aiRequestMode.value === "bridge" || aiRequestMode.value === "direct" ? aiRequestMode.value : "auto";
     provider.baseUrl = aiBaseUrl.value.trim();
     provider.model = (aiManualModel.value.trim() || aiSettingsModel.value).trim();
     if (aiApiKey.value.trim()) state.apiKeyDrafts[provider.id] = aiApiKey.value.trim();
@@ -2343,6 +2445,15 @@
   aiSettingsModel.addEventListener("change", () => {
     aiManualModel.value = aiSettingsModel.value;
   });
+  aiRequestMode.addEventListener("change", () => {
+    if (!state.aiSettings) return;
+    state.aiSettings.requestMode = aiRequestMode.value === "bridge" || aiRequestMode.value === "direct" ? aiRequestMode.value : "auto";
+  });
+  aiBridgeRefresh.addEventListener("click", () => {
+    state.bridgeStatus = null;
+    renderBridgeStatus();
+    postMessage2({ type: "check-ai-bridge" });
+  });
   aiCopyDiagnostic.addEventListener("click", async () => {
     if (!currentAiDiagnostic) return;
     const diagnostic = aiDiagnosticText(currentAiDiagnostic);
@@ -2370,6 +2481,7 @@
     postMessage2({
       type: "list-ai-models",
       provider,
+      requestMode: state.aiSettings?.requestMode,
       ...state.apiKeyDrafts[provider.id]?.trim() ? { apiKey: state.apiKeyDrafts[provider.id].trim() } : {}
     });
   });
@@ -2562,6 +2674,11 @@
       if (!aiSettingsView.hidden) aiConnectionResult.textContent = "\u670D\u52A1\u914D\u7F6E\u5DF2\u4FDD\u5B58\u3002";
       return;
     }
+    if (message.type === "ai-bridge-status") {
+      state.bridgeStatus = message.status;
+      renderBridgeStatus();
+      return;
+    }
     if (message.type === "ai-models") {
       state.modelOptions[message.providerId] = message.models;
       const provider = state.aiSettings?.providers.find((item) => item.id === message.providerId);
@@ -2574,7 +2691,7 @@
       }
       aiFetchModels.disabled = false;
       renderAiDiagnostic();
-      aiConnectionResult.textContent = message.models.length ? `\u8FDE\u63A5\u6210\u529F\uFF1A${resolvedFormatLabel(message.resolvedApiFormat)}\uFF0C\u83B7\u53D6\u5230 ${message.models.length} \u4E2A\u6A21\u578B\u3002` : `\u8FDE\u63A5\u6210\u529F\uFF1A${resolvedFormatLabel(message.resolvedApiFormat)}\uFF0C\u4F46\u6CA1\u6709\u53D1\u73B0\u53EF\u7528\u6A21\u578B\uFF0C\u53EF\u624B\u52A8\u586B\u5199\u6A21\u578B ID\u3002`;
+      aiConnectionResult.textContent = message.models.length ? `\u8FDE\u63A5\u6210\u529F\uFF1A\u901A\u8FC7${message.transport === "bridge" ? "\u672C\u5730\u670D\u52A1" : "\u76F4\u63A5\u8FDE\u63A5"}\u83B7\u53D6\u5230 ${message.models.length} \u4E2A\u6A21\u578B\u3002` : `\u8FDE\u63A5\u6210\u529F\uFF1A${resolvedFormatLabel(message.resolvedApiFormat)}\uFF0C\u4F46\u6CA1\u6709\u53D1\u73B0\u53EF\u7528\u6A21\u578B\uFF0C\u53EF\u624B\u52A8\u586B\u5199\u6A21\u578B ID\u3002`;
       renderAiMainControls();
       return;
     }
@@ -2638,6 +2755,7 @@
   syncControls();
   render();
   postMessage2({ type: "ui-ready" });
+  window.setInterval(() => postMessage2({ type: "check-ai-bridge" }), 6e4);
 })();
 
 </script>

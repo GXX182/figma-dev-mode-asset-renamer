@@ -7,10 +7,13 @@ import {
   resolveAiApiFormat,
   validateAiBaseUrl
 } from "./ai";
+import { checkLocalAiBridge, localAiBridgeFetch } from "./bridge";
 import type {
   AiApiFormat,
   AiProviderProfileView,
   AiRequestDiagnostic,
+  AiRequestMode,
+  AiRequestTransport,
   AiSettingsView,
   ExportConfig,
   ExportFormat,
@@ -50,6 +53,7 @@ const DEFAULT_AI_PROMPT = {
 function defaultAiSettings(): StoredAiSettings {
   return {
     activeProviderId: "provider-default",
+    requestMode: "auto",
     providers: [{
       id: "provider-default",
       name: "AI 服务",
@@ -121,6 +125,7 @@ function maskApiKey(apiKey: string): string {
 function aiSettingsView(settings: StoredAiSettings): AiSettingsView {
   return {
     activeProviderId: settings.activeProviderId,
+    requestMode: normalizedRequestMode(settings.requestMode),
     providers: settings.providers.map((provider) => {
       let resolvedApiFormat: AiProviderProfileView["resolvedApiFormat"] = null;
       try {
@@ -151,7 +156,7 @@ async function readAiSettings(): Promise<StoredAiSettings> {
   try {
     const stored = await figma.clientStorage.getAsync(AI_SETTINGS_KEY) as StoredAiSettings | undefined;
     if (stored && Array.isArray(stored.providers) && stored.providers.length > 0) {
-      return stored;
+      return { ...stored, requestMode: normalizedRequestMode(stored.requestMode) };
     }
   } catch {
     // 使用默认值继续。
@@ -171,6 +176,10 @@ function normalizedApiFormat(value: unknown): AiApiFormat {
   return ["auto", "gemini-native", "openai-compatible", "anthropic-compatible"].includes(String(value))
     ? value as AiApiFormat
     : "auto";
+}
+
+function normalizedRequestMode(value: unknown): AiRequestMode {
+  return value === "direct" || value === "bridge" ? value : "auto";
 }
 
 async function saveAiSettings(view: AiSettingsView, apiKeys: Record<string, string> = {}): Promise<void> {
@@ -212,6 +221,7 @@ async function saveAiSettings(view: AiSettingsView, apiKeys: Record<string, stri
     : { type: "prompt" as const, id: prompts[0].id };
   await figma.clientStorage.setAsync(AI_SETTINGS_KEY, {
     activeProviderId,
+    requestMode: normalizedRequestMode(view.requestMode),
     providers,
     prompts,
     skills,
@@ -220,22 +230,46 @@ async function saveAiSettings(view: AiSettingsView, apiKeys: Record<string, stri
   await postAiSettings();
 }
 
-async function postAiModels(providerView: AiProviderProfileView, suppliedApiKey?: string): Promise<void> {
+async function postAiBridgeStatus(): Promise<void> {
+  postMessage({ type: "ai-bridge-status", status: await checkLocalAiBridge() });
+}
+
+async function selectedAiTransport(mode: AiRequestMode): Promise<{
+  transport: AiRequestTransport;
+  fetchImpl: typeof fetch;
+}> {
+  if (mode === "direct") return { transport: "direct", fetchImpl: fetch };
+  const bridgeStatus = await checkLocalAiBridge();
+  postMessage({ type: "ai-bridge-status", status: bridgeStatus });
+  if (bridgeStatus.available) return { transport: "bridge", fetchImpl: localAiBridgeFetch };
+  if (mode === "bridge") {
+    throw new Error(`${bridgeStatus.message}。请运行 server/start-server.cmd 后重试。`);
+  }
+  return { transport: "direct", fetchImpl: fetch };
+}
+
+async function postAiModels(
+  providerView: AiProviderProfileView,
+  suppliedApiKey?: string,
+  requestedMode?: AiRequestMode
+): Promise<void> {
   try {
     const settings = await readAiSettings();
     const stored = settings.providers.find((provider) => provider.id === providerView.id);
     const apiKey = suppliedApiKey?.trim() || stored?.apiKey || "";
+    const selection = await selectedAiTransport(normalizedRequestMode(requestedMode ?? settings.requestMode));
     const result = await listAiModels({
       apiFormat: providerView.apiFormat,
       baseUrl: providerView.baseUrl,
       apiKey,
       model: providerView.model
-    });
+    }, selection.fetchImpl, selection.transport);
     postMessage({
       type: "ai-models",
       providerId: providerView.id,
       models: result.models,
-      resolvedApiFormat: result.resolvedApiFormat
+      resolvedApiFormat: result.resolvedApiFormat,
+      transport: selection.transport
     });
   } catch (error) {
     const diagnostic = getAiRequestDiagnostic(error);
@@ -381,6 +415,14 @@ async function analyzeSelection(): Promise<void> {
     return;
   }
 
+  let transportSelection: Awaited<ReturnType<typeof selectedAiTransport>>;
+  try {
+    transportSelection = await selectedAiTransport(settings.requestMode);
+  } catch (error) {
+    postMessage({ type: "ai-error", message: formatAiError(error) });
+    return;
+  }
+
   postMessage({ type: "ai-analysis-started", total: nodes.length });
   const suggestions = [] as Awaited<ReturnType<typeof analyzeAiImages>>;
   const failedNodeIds: string[] = [];
@@ -426,7 +468,7 @@ async function analyzeSelection(): Promise<void> {
         model: provider.model,
         instructions: strategy.content,
         images
-      }));
+      }, transportSelection.fetchImpl, transportSelection.transport));
       const returned = new Set(suggestions.map((item) => item.nodeId));
       for (const image of images) {
         if (!returned.has(image.id) && !failedNodeIds.includes(image.id)) failedNodeIds.push(image.id);
@@ -465,6 +507,7 @@ if (figma.editorType !== "dev") {
       postSelection();
       void postSavedSettings();
       void postAiSettings();
+      void postAiBridgeStatus();
       return;
     }
     if (message.type === "save-settings") {
@@ -476,7 +519,11 @@ if (figma.editorType !== "dev") {
       return;
     }
     if (message.type === "list-ai-models") {
-      void postAiModels(message.provider, message.apiKey);
+      void postAiModels(message.provider, message.apiKey, message.requestMode);
+      return;
+    }
+    if (message.type === "check-ai-bridge") {
+      void postAiBridgeStatus();
       return;
     }
     if (message.type === "analyze-selection") {

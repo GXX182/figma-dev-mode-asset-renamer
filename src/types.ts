@@ -33,6 +33,9 @@ export type AiApiFormat =
 
 export type ResolvedAiApiFormat = Exclude<AiApiFormat, "auto">;
 
+export type AiRequestMode = "auto" | "direct" | "bridge";
+export type AiRequestTransport = Exclude<AiRequestMode, "auto">;
+
 export type AiProviderProfileView = {
   id: string;
   name: string;
@@ -63,6 +66,7 @@ export type AiNamingStrategy = {
 
 export type AiSettingsView = {
   activeProviderId: string;
+  requestMode: AiRequestMode;
   providers: AiProviderProfileView[];
   prompts: AiPromptTemplate[];
   skills: AiSkill[];
@@ -82,6 +86,7 @@ export type AiSuggestion = {
 
 export type AiRequestDiagnostic = {
   phase: "models" | "analysis";
+  transport: AiRequestTransport;
   method: "GET" | "POST";
   endpoint: string;
   status: number | null;
@@ -90,6 +95,13 @@ export type AiRequestDiagnostic = {
   error: string;
   responseAvailable: boolean;
   probableCause: string;
+};
+
+export type AiBridgeStatus = {
+  available: boolean;
+  endpoint: string;
+  protocolVersion: number | null;
+  message: string;
 };
 
 export type SelectionMessage = {
@@ -107,11 +119,13 @@ export type PluginToUiMessage =
   | SelectionMessage
   | { type: "settings"; config: Partial<ExportConfig> | null }
   | { type: "ai-settings"; settings: AiSettingsView }
+  | { type: "ai-bridge-status"; status: AiBridgeStatus }
   | {
       type: "ai-models";
       providerId: string;
       models: AiModelOption[];
       resolvedApiFormat: ResolvedAiApiFormat;
+      transport: AiRequestTransport;
     }
   | { type: "ai-analysis-started"; total: number }
   | { type: "ai-analysis-progress"; completed: number; total: number }
@@ -134,6 +148,8 @@ export type UiToPluginMessage =
       type: "list-ai-models";
       provider: AiProviderProfileView;
       apiKey?: string;
+      requestMode?: AiRequestMode;
     }
+  | { type: "check-ai-bridge" }
   | { type: "analyze-selection" }
   | { type: "export"; config: ExportConfig; semanticNames?: Record<string, string> };

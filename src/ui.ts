@@ -7,6 +7,7 @@ import {
 import { buildArchive } from "./archive";
 import type {
   AiApiFormat,
+  AiBridgeStatus,
   AiModelOption,
   AiProviderProfileView,
   AiRequestDiagnostic,
@@ -34,6 +35,7 @@ const state: {
   aiSettings: AiSettingsView | null;
   aiBusy: boolean;
   aiSuggestions: Record<string, string>;
+  bridgeStatus: AiBridgeStatus | null;
   modelOptions: Record<string, AiModelOption[]>;
   apiKeyDrafts: Record<string, string>;
 } = {
@@ -44,6 +46,7 @@ const state: {
   aiSettings: null,
   aiBusy: false,
   aiSuggestions: {},
+  bridgeStatus: null,
   modelOptions: {},
   apiKeyDrafts: {}
 };
@@ -83,6 +86,10 @@ const aiProviderAdd = element<HTMLButtonElement>("ai-provider-add");
 const aiProviderDelete = element<HTMLButtonElement>("ai-provider-delete");
 const aiProviderName = element<HTMLInputElement>("ai-provider-name");
 const aiApiFormat = element<HTMLSelectElement>("ai-api-format");
+const aiRequestMode = element<HTMLSelectElement>("ai-request-mode");
+const aiBridgeStatus = element<HTMLElement>("ai-bridge-status");
+const aiBridgeStatusText = element<HTMLElement>("ai-bridge-status-text");
+const aiBridgeRefresh = element<HTMLButtonElement>("ai-bridge-refresh");
 const aiBaseUrl = element<HTMLInputElement>("ai-base-url");
 const aiApiKey = element<HTMLInputElement>("ai-api-key");
 const aiKeyHelper = element<HTMLParagraphElement>("ai-key-helper");
@@ -91,6 +98,7 @@ const aiRequestDiagnostic = element<HTMLDetailsElement>("ai-request-diagnostic")
 const aiDiagnosticState = element<HTMLSpanElement>("ai-diagnostic-state");
 const aiDiagnosticPhase = element<HTMLElement>("ai-diagnostic-phase");
 const aiDiagnosticStatus = element<HTMLElement>("ai-diagnostic-status");
+const aiDiagnosticTransport = element<HTMLElement>("ai-diagnostic-transport");
 const aiDiagnosticRequest = element<HTMLElement>("ai-diagnostic-request");
 const aiDiagnosticError = element<HTMLElement>("ai-diagnostic-error");
 const aiDiagnosticResponse = element<HTMLElement>("ai-diagnostic-response");
@@ -158,6 +166,7 @@ function aiDiagnosticText(diagnostic: AiRequestDiagnostic): string {
     : "未收到可读取的 HTTP 响应";
   return [
     `阶段：${diagnostic.phase === "models" ? "获取模型" : "图片分析"}`,
+    `请求通道：${diagnostic.transport === "bridge" ? "本地服务 127.0.0.1:7879" : "Figma 直接连接"}`,
     `请求：${diagnostic.method} ${diagnostic.endpoint}`,
     `HTTP 状态：${statusText}`,
     `错误：${diagnostic.error}`,
@@ -179,6 +188,7 @@ function renderAiDiagnostic(diagnostic?: AiRequestDiagnostic): void {
   aiDiagnosticStatus.textContent = diagnostic.responseAvailable && diagnostic.status !== null
     ? `${diagnostic.status}${diagnostic.statusText ? ` ${diagnostic.statusText}` : ""}`
     : "不可用";
+  aiDiagnosticTransport.textContent = diagnostic.transport === "bridge" ? "本地服务" : "直接连接";
   aiDiagnosticRequest.textContent = `${diagnostic.method} ${diagnostic.endpoint}`;
   aiDiagnosticError.textContent = diagnostic.error;
   aiDiagnosticResponse.textContent = diagnostic.responsePreview || "Figma 未向插件暴露响应头或响应体。";
@@ -314,6 +324,7 @@ function renderProviderForm(): void {
   if (!provider) return;
   aiProviderName.value = provider.name;
   aiApiFormat.value = provider.apiFormat;
+  aiRequestMode.value = settings.requestMode;
   aiBaseUrl.value = provider.baseUrl;
   aiApiKey.value = state.apiKeyDrafts[provider.id] || "";
   aiKeyHelper.textContent = provider.keyConfigured
@@ -324,6 +335,19 @@ function renderProviderForm(): void {
     : "填写连接信息后获取模型。";
   renderSettingsModels(provider);
   aiProviderDelete.disabled = settings.providers.length <= 1;
+}
+
+function renderBridgeStatus(): void {
+  const bridge = state.bridgeStatus;
+  if (!bridge) {
+    aiBridgeStatus.dataset.state = "checking";
+    aiBridgeStatusText.textContent = "正在检测本地服务…";
+    aiBridgeRefresh.disabled = true;
+    return;
+  }
+  aiBridgeStatus.dataset.state = bridge.available ? "online" : "offline";
+  aiBridgeStatusText.textContent = bridge.message;
+  aiBridgeRefresh.disabled = false;
 }
 
 function renderSettingsModels(provider: AiProviderProfileView): void {
@@ -369,6 +393,7 @@ function renderSkillEditor(selectedId?: string): void {
 
 function renderAiSettingsEditors(): void {
   renderProviderForm();
+  renderBridgeStatus();
   renderPromptEditor();
   renderSkillEditor();
 }
@@ -591,6 +616,9 @@ function updateActiveProviderFromForm(): AiProviderProfileView | null {
   if (!settings || !provider) return null;
   provider.name = aiProviderName.value.trim() || "AI 服务";
   provider.apiFormat = aiApiFormat.value as AiApiFormat;
+  settings.requestMode = aiRequestMode.value === "bridge" || aiRequestMode.value === "direct"
+    ? aiRequestMode.value
+    : "auto";
   provider.baseUrl = aiBaseUrl.value.trim();
   provider.model = (aiManualModel.value.trim() || aiSettingsModel.value).trim();
   if (aiApiKey.value.trim()) state.apiKeyDrafts[provider.id] = aiApiKey.value.trim();
@@ -677,6 +705,19 @@ aiSettingsModel.addEventListener("change", () => {
   aiManualModel.value = aiSettingsModel.value;
 });
 
+aiRequestMode.addEventListener("change", () => {
+  if (!state.aiSettings) return;
+  state.aiSettings.requestMode = aiRequestMode.value === "bridge" || aiRequestMode.value === "direct"
+    ? aiRequestMode.value
+    : "auto";
+});
+
+aiBridgeRefresh.addEventListener("click", () => {
+  state.bridgeStatus = null;
+  renderBridgeStatus();
+  postMessage({ type: "check-ai-bridge" });
+});
+
 aiCopyDiagnostic.addEventListener("click", async () => {
   if (!currentAiDiagnostic) return;
   const diagnostic = aiDiagnosticText(currentAiDiagnostic);
@@ -705,6 +746,7 @@ aiFetchModels.addEventListener("click", () => {
   postMessage({
     type: "list-ai-models",
     provider,
+    requestMode: state.aiSettings?.requestMode,
     ...(state.apiKeyDrafts[provider.id]?.trim() ? { apiKey: state.apiKeyDrafts[provider.id].trim() } : {})
   });
 });
@@ -914,6 +956,12 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
     return;
   }
 
+  if (message.type === "ai-bridge-status") {
+    state.bridgeStatus = message.status;
+    renderBridgeStatus();
+    return;
+  }
+
   if (message.type === "ai-models") {
     state.modelOptions[message.providerId] = message.models;
     const provider = state.aiSettings?.providers.find((item) => item.id === message.providerId);
@@ -927,7 +975,7 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
     aiFetchModels.disabled = false;
     renderAiDiagnostic();
     aiConnectionResult.textContent = message.models.length
-      ? `连接成功：${resolvedFormatLabel(message.resolvedApiFormat)}，获取到 ${message.models.length} 个模型。`
+      ? `连接成功：通过${message.transport === "bridge" ? "本地服务" : "直接连接"}获取到 ${message.models.length} 个模型。`
       : `连接成功：${resolvedFormatLabel(message.resolvedApiFormat)}，但没有发现可用模型，可手动填写模型 ID。`;
     renderAiMainControls();
     return;
@@ -1003,3 +1051,4 @@ renderTokens();
 syncControls();
 render();
 postMessage({ type: "ui-ready" });
+window.setInterval(() => postMessage({ type: "check-ai-bridge" }), 60_000);

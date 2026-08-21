@@ -198,7 +198,7 @@
     const diagnostic = error.diagnostic;
     if (!diagnostic || typeof diagnostic !== "object" || Array.isArray(diagnostic)) return void 0;
     const value = diagnostic;
-    if (value.phase !== "models" && value.phase !== "analysis" || value.method !== "GET" && value.method !== "POST" || typeof value.endpoint !== "string") return void 0;
+    if (value.phase !== "models" && value.phase !== "analysis" || value.transport !== "direct" && value.transport !== "bridge" || value.method !== "GET" && value.method !== "POST" || typeof value.endpoint !== "string") return void 0;
     return diagnostic;
   }
   function sensitiveHeaderValues(headers) {
@@ -297,7 +297,7 @@
     }
     return { "content-type": "application/json", authorization: `Bearer ${apiKey}` };
   }
-  async function fetchJson(endpoint, init, fetchImpl = fetch, phase = "analysis") {
+  async function fetchJson(endpoint, init, fetchImpl = fetch, phase = "analysis", transport = "direct") {
     let timer;
     const method = init.method === "GET" ? "GET" : "POST";
     const requestSecrets = sensitiveHeaderValues(init.headers);
@@ -312,6 +312,7 @@
       if (declaredLength > MAX_RESPONSE_BYTES) {
         throw new AiRequestFailure("AI \u670D\u52A1\u54CD\u5E94\u8FC7\u5927", {
           phase,
+          transport,
           method,
           endpoint,
           status: response.status,
@@ -327,6 +328,7 @@
       if (utf8ByteLength(text) > MAX_RESPONSE_BYTES) {
         throw new AiRequestFailure("AI \u670D\u52A1\u54CD\u5E94\u8FC7\u5927", {
           phase,
+          transport,
           method,
           endpoint,
           status: response.status,
@@ -339,8 +341,10 @@
       }
       if (!response.ok) {
         const message = `AI \u670D\u52A1\u8FD4\u56DE ${response.status}${responsePreview ? `\uFF1A${responsePreview.slice(0, 240)}` : ""}`;
+        const bridgeError = transport === "bridge" && responseHeader(response, "x-asset-renamer-bridge-error") === "1";
         throw new AiRequestFailure(message, {
           phase,
+          transport,
           method,
           endpoint,
           status: response.status,
@@ -348,7 +352,7 @@
           responsePreview,
           error: message,
           responseAvailable: true,
-          probableCause: "\u670D\u52A1\u5DF2\u7ECF\u8FD4\u56DE HTTP \u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5 API Key\u3001\u6A21\u578B\u6743\u9650\u6216\u63A5\u53E3\u8DEF\u5F84\u3002"
+          probableCause: bridgeError ? "\u672C\u5730\u8F6C\u53D1\u670D\u52A1\u672A\u80FD\u5B8C\u6210\u8BF7\u6C42\uFF0C\u8BF7\u6839\u636E\u54CD\u5E94\u6458\u8981\u68C0\u67E5\u76EE\u6807\u5730\u5740\u3001DNS\u3001\u8D85\u65F6\u6216\u5B89\u5168\u9650\u5236\u3002" : "\u4E0A\u6E38\u670D\u52A1\u5DF2\u7ECF\u8FD4\u56DE HTTP \u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5 API Key\u3001\u6A21\u578B\u6743\u9650\u6216\u63A5\u53E3\u8DEF\u5F84\u3002"
         });
       }
       let value;
@@ -357,6 +361,7 @@
       } catch {
         throw new AiRequestFailure("AI \u670D\u52A1\u8FD4\u56DE\u7684\u4E0D\u662F\u6709\u6548 JSON", {
           phase,
+          transport,
           method,
           endpoint,
           status: response.status,
@@ -370,6 +375,7 @@
       if (!value || typeof value !== "object" || Array.isArray(value)) {
         throw new AiRequestFailure("AI \u670D\u52A1\u8FD4\u56DE\u7684\u4E0D\u662F\u6709\u6548 JSON \u5BF9\u8C61", {
           phase,
+          transport,
           method,
           endpoint,
           status: response.status,
@@ -386,6 +392,7 @@
       const message = formatAiError(error);
       throw new AiRequestFailure(message, {
         phase,
+        transport,
         method,
         endpoint,
         status: null,
@@ -393,7 +400,7 @@
         responsePreview: "",
         error: message,
         responseAvailable: false,
-        probableCause: message.toLowerCase().includes("failed to fetch") ? "Figma \u6CA1\u6709\u6536\u5230\u53EF\u8BFB\u53D6\u7684\u54CD\u5E94\uFF0C\u5E38\u89C1\u539F\u56E0\u662F CORS\u3001TLS\u3001DNS\u3001\u4EE3\u7406\u6216\u63D2\u4EF6\u7F51\u7EDC\u6743\u9650\u62E6\u622A\u3002" : "\u8BF7\u6C42\u5728\u6536\u5230\u53EF\u8BFB\u53D6\u7684 HTTP \u54CD\u5E94\u524D\u5931\u8D25\u3002"
+        probableCause: transport === "bridge" ? "Figma \u65E0\u6CD5\u8FDE\u63A5\u672C\u5730\u8F6C\u53D1\u670D\u52A1\uFF0C\u8BF7\u786E\u8BA4 127.0.0.1:7879 \u6B63\u5728\u76D1\u542C\u4E14\u6CA1\u6709\u88AB\u9632\u706B\u5899\u62E6\u622A\u3002" : message.toLowerCase().includes("failed to fetch") ? "Figma \u6CA1\u6709\u6536\u5230\u53EF\u8BFB\u53D6\u7684\u54CD\u5E94\uFF0C\u5E38\u89C1\u539F\u56E0\u662F CORS\u3001TLS\u3001DNS\u3001\u4EE3\u7406\u6216\u63D2\u4EF6\u7F51\u7EDC\u6743\u9650\u62E6\u622A\u3002" : "\u8BF7\u6C42\u5728\u6536\u5230\u53EF\u8BFB\u53D6\u7684 HTTP \u54CD\u5E94\u524D\u5931\u8D25\u3002"
       });
     } finally {
       if (timer !== void 0) clearTimeout(timer);
@@ -414,7 +421,7 @@
       sensitivity: "base"
     }));
   }
-  async function listAiModels(request, fetchImpl = fetch) {
+  async function listAiModels(request, fetchImpl = fetch, transport = "direct") {
     const baseUrl = validateAiBaseUrl(request.baseUrl);
     if (!request.apiKey.trim()) {
       throw new Error("\u8BF7\u586B\u5199 API Key");
@@ -423,7 +430,7 @@
     const body = await fetchJson(modelsEndpoint(baseUrl, resolvedApiFormat), {
       method: "GET",
       headers: requestHeaders(resolvedApiFormat, request.apiKey)
-    }, fetchImpl, "models");
+    }, fetchImpl, "models", transport);
     let models;
     if (resolvedApiFormat === "gemini-native") {
       models = records(body.models).flatMap((item) => {
@@ -545,7 +552,7 @@ ${assets}`
     }
     return suggestions;
   }
-  async function analyzeAiImages(request, fetchImpl = fetch) {
+  async function analyzeAiImages(request, fetchImpl = fetch, transport = "direct") {
     const baseUrl = validateAiBaseUrl(request.baseUrl);
     const format = resolveAiApiFormat(request.apiFormat, baseUrl);
     const prompt = analysisPrompt(request.instructions, request.images);
@@ -619,7 +626,8 @@ ${assets}`
       endpoint,
       { method: "POST", headers, body: JSON.stringify(body) },
       fetchImpl,
-      "analysis"
+      "analysis",
+      transport
     );
     const answer = answerText(response, format, responses);
     if (!answer) {
@@ -627,6 +635,95 @@ ${assets}`
     }
     return parseSuggestions(answer, request.images);
   }
+
+  // src/bridge.ts
+  var LOCAL_AI_BRIDGE_ORIGIN = "http://127.0.0.1:7879";
+  var LOCAL_AI_BRIDGE_HEALTH = `${LOCAL_AI_BRIDGE_ORIGIN}/health`;
+  var LOCAL_AI_BRIDGE_RELAY = `${LOCAL_AI_BRIDGE_ORIGIN}/relay`;
+  var BRIDGE_SERVICE_NAME = "figma-asset-renamer-bridge";
+  var BRIDGE_PROTOCOL_VERSION = 1;
+  var HEALTH_TIMEOUT_MS = 1200;
+  function plainHeaders(headers) {
+    if (!headers) return {};
+    const result = {};
+    if (Array.isArray(headers)) {
+      for (const [name, value] of headers) result[name] = value;
+      return result;
+    }
+    if (typeof headers.forEach === "function") {
+      headers.forEach((value, name) => {
+        result[name] = value;
+      });
+      return result;
+    }
+    return { ...headers };
+  }
+  async function checkLocalAiBridge(fetchImpl = fetch) {
+    let timer;
+    try {
+      const response = await Promise.race([
+        fetchImpl(LOCAL_AI_BRIDGE_HEALTH, { method: "GET", cache: "no-store" }),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error("\u5065\u5EB7\u68C0\u67E5\u8D85\u65F6")), HEALTH_TIMEOUT_MS);
+        })
+      ]);
+      if (!response.ok) {
+        return {
+          available: false,
+          endpoint: LOCAL_AI_BRIDGE_ORIGIN,
+          protocolVersion: null,
+          message: `\u672C\u5730\u670D\u52A1\u8FD4\u56DE HTTP ${response.status}`
+        };
+      }
+      const value = JSON.parse(await response.text());
+      const protocolVersion = typeof value.protocolVersion === "number" ? value.protocolVersion : null;
+      if (value.service !== BRIDGE_SERVICE_NAME || protocolVersion !== BRIDGE_PROTOCOL_VERSION) {
+        return {
+          available: false,
+          endpoint: LOCAL_AI_BRIDGE_ORIGIN,
+          protocolVersion,
+          message: "7879 \u7AEF\u53E3\u4E0A\u7684\u670D\u52A1\u4E0E\u5F53\u524D\u63D2\u4EF6\u4E0D\u517C\u5BB9"
+        };
+      }
+      return {
+        available: true,
+        endpoint: LOCAL_AI_BRIDGE_ORIGIN,
+        protocolVersion,
+        message: "\u672C\u5730\u8F6C\u53D1\u670D\u52A1\u5DF2\u8FDE\u63A5"
+      };
+    } catch (error) {
+      return {
+        available: false,
+        endpoint: LOCAL_AI_BRIDGE_ORIGIN,
+        protocolVersion: null,
+        message: `\u672C\u5730\u8F6C\u53D1\u670D\u52A1\u672A\u542F\u52A8\uFF1A${error instanceof Error ? error.message : String(error)}`
+      };
+    } finally {
+      if (timer !== void 0) clearTimeout(timer);
+    }
+  }
+  function createLocalAiBridgeFetch(fetchImpl = fetch) {
+    return async (input, init) => {
+      const endpoint = String(input);
+      const method = init?.method === "GET" ? "GET" : "POST";
+      const body = typeof init?.body === "string" ? init.body : void 0;
+      if (init?.body !== void 0 && body === void 0) {
+        throw new Error("\u672C\u5730\u8F6C\u53D1\u670D\u52A1\u53EA\u652F\u6301\u5B57\u7B26\u4E32\u8BF7\u6C42\u6B63\u6587");
+      }
+      return fetchImpl(LOCAL_AI_BRIDGE_RELAY, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          endpoint,
+          method,
+          headers: plainHeaders(init?.headers),
+          ...body === void 0 ? {} : { body }
+        }),
+        redirect: "error"
+      });
+    };
+  }
+  var localAiBridgeFetch = createLocalAiBridgeFetch();
 
   // src/code.ts
   var SUPPORTED_FORMATS = /* @__PURE__ */ new Set(["PNG", "JPG", "SVG", "PDF"]);
@@ -648,6 +745,7 @@ ${assets}`
   function defaultAiSettings() {
     return {
       activeProviderId: "provider-default",
+      requestMode: "auto",
       providers: [{
         id: "provider-default",
         name: "AI \u670D\u52A1",
@@ -710,6 +808,7 @@ ${assets}`
   function aiSettingsView(settings) {
     return {
       activeProviderId: settings.activeProviderId,
+      requestMode: normalizedRequestMode(settings.requestMode),
       providers: settings.providers.map((provider) => {
         let resolvedApiFormat = null;
         try {
@@ -737,7 +836,7 @@ ${assets}`
     try {
       const stored = await figma.clientStorage.getAsync(AI_SETTINGS_KEY);
       if (stored && Array.isArray(stored.providers) && stored.providers.length > 0) {
-        return stored;
+        return { ...stored, requestMode: normalizedRequestMode(stored.requestMode) };
       }
     } catch {
     }
@@ -751,6 +850,9 @@ ${assets}`
   }
   function normalizedApiFormat(value) {
     return ["auto", "gemini-native", "openai-compatible", "anthropic-compatible"].includes(String(value)) ? value : "auto";
+  }
+  function normalizedRequestMode(value) {
+    return value === "direct" || value === "bridge" ? value : "auto";
   }
   async function saveAiSettings(view, apiKeys = {}) {
     const previous = await readAiSettings();
@@ -783,6 +885,7 @@ ${assets}`
     const strategy = strategyExists ? { ...requestedStrategy } : { type: "prompt", id: prompts[0].id };
     await figma.clientStorage.setAsync(AI_SETTINGS_KEY, {
       activeProviderId,
+      requestMode: normalizedRequestMode(view.requestMode),
       providers,
       prompts,
       skills,
@@ -790,22 +893,37 @@ ${assets}`
     });
     await postAiSettings();
   }
-  async function postAiModels(providerView, suppliedApiKey) {
+  async function postAiBridgeStatus() {
+    postMessage({ type: "ai-bridge-status", status: await checkLocalAiBridge() });
+  }
+  async function selectedAiTransport(mode) {
+    if (mode === "direct") return { transport: "direct", fetchImpl: fetch };
+    const bridgeStatus = await checkLocalAiBridge();
+    postMessage({ type: "ai-bridge-status", status: bridgeStatus });
+    if (bridgeStatus.available) return { transport: "bridge", fetchImpl: localAiBridgeFetch };
+    if (mode === "bridge") {
+      throw new Error(`${bridgeStatus.message}\u3002\u8BF7\u8FD0\u884C server/start-server.cmd \u540E\u91CD\u8BD5\u3002`);
+    }
+    return { transport: "direct", fetchImpl: fetch };
+  }
+  async function postAiModels(providerView, suppliedApiKey, requestedMode) {
     try {
       const settings = await readAiSettings();
       const stored = settings.providers.find((provider) => provider.id === providerView.id);
       const apiKey = suppliedApiKey?.trim() || stored?.apiKey || "";
+      const selection = await selectedAiTransport(normalizedRequestMode(requestedMode ?? settings.requestMode));
       const result = await listAiModels({
         apiFormat: providerView.apiFormat,
         baseUrl: providerView.baseUrl,
         apiKey,
         model: providerView.model
-      });
+      }, selection.fetchImpl, selection.transport);
       postMessage({
         type: "ai-models",
         providerId: providerView.id,
         models: result.models,
-        resolvedApiFormat: result.resolvedApiFormat
+        resolvedApiFormat: result.resolvedApiFormat,
+        transport: selection.transport
       });
     } catch (error) {
       const diagnostic = getAiRequestDiagnostic(error);
@@ -935,6 +1053,13 @@ ${assets}`
       postMessage({ type: "ai-error", message: "\u8BF7\u5148\u9009\u62E9\u81F3\u5C11\u4E00\u4E2A\u53EF\u5BFC\u51FA\u7684\u56FE\u7247\u6216\u56FE\u5C42" });
       return;
     }
+    let transportSelection;
+    try {
+      transportSelection = await selectedAiTransport(settings.requestMode);
+    } catch (error) {
+      postMessage({ type: "ai-error", message: formatAiError(error) });
+      return;
+    }
     postMessage({ type: "ai-analysis-started", total: nodes.length });
     const suggestions = [];
     const failedNodeIds = [];
@@ -979,7 +1104,7 @@ ${assets}`
           model: provider.model,
           instructions: strategy.content,
           images
-        }));
+        }, transportSelection.fetchImpl, transportSelection.transport));
         const returned = new Set(suggestions.map((item) => item.nodeId));
         for (const image of images) {
           if (!returned.has(image.id) && !failedNodeIds.includes(image.id)) failedNodeIds.push(image.id);
@@ -1015,6 +1140,7 @@ ${assets}`
         postSelection();
         void postSavedSettings();
         void postAiSettings();
+        void postAiBridgeStatus();
         return;
       }
       if (message.type === "save-settings") {
@@ -1026,7 +1152,11 @@ ${assets}`
         return;
       }
       if (message.type === "list-ai-models") {
-        void postAiModels(message.provider, message.apiKey);
+        void postAiModels(message.provider, message.apiKey, message.requestMode);
+        return;
+      }
+      if (message.type === "check-ai-bridge") {
+        void postAiBridgeStatus();
         return;
       }
       if (message.type === "analyze-selection") {
