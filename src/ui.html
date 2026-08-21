@@ -367,6 +367,187 @@
         background: color-mix(in srgb, var(--brand) 15%, var(--bg));
       }
 
+      .ai-analyze-button.is-cancel {
+        border-color: color-mix(in srgb, var(--danger) 42%, var(--border));
+        background: color-mix(in srgb, var(--danger) 7%, var(--bg));
+        color: var(--danger);
+      }
+
+      .ai-analyze-button.is-cancel:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--danger) 12%, var(--bg));
+      }
+
+      .ai-progress {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid color-mix(in srgb, var(--brand) 32%, var(--border));
+        border-radius: var(--radius);
+        background: color-mix(in srgb, var(--brand) 5%, var(--surface));
+      }
+
+      .ai-progress[hidden] {
+        display: none;
+      }
+
+      .ai-progress[data-phase="complete"] {
+        border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+        background: color-mix(in srgb, var(--success) 5%, var(--surface));
+      }
+
+      .ai-progress[data-phase="error"] {
+        border-color: color-mix(in srgb, var(--danger) 32%, var(--border));
+        background: color-mix(in srgb, var(--danger) 4%, var(--surface));
+      }
+
+      .ai-progress[data-phase="batch-failed"] {
+        border-color: color-mix(in srgb, var(--warning) 34%, var(--border));
+        background: color-mix(in srgb, var(--warning) 5%, var(--surface));
+      }
+
+      .ai-progress[data-phase="cancelled"] {
+        border-color: var(--border);
+        background: var(--surface);
+      }
+
+      .ai-progress-heading,
+      .ai-progress-meta {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .ai-progress-title-wrap {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .ai-progress-pulse {
+        position: relative;
+        width: 7px;
+        height: 7px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: var(--brand);
+      }
+
+      .ai-progress[data-phase="preparing"] .ai-progress-pulse,
+      .ai-progress[data-phase="requesting"] .ai-progress-pulse,
+      .ai-progress[data-phase="starting"] .ai-progress-pulse,
+      .ai-progress[data-phase="cancelling"] .ai-progress-pulse {
+        animation: ai-pulse 1.4s ease-out infinite;
+      }
+
+      .ai-progress[data-phase="complete"] .ai-progress-pulse {
+        background: var(--success);
+      }
+
+      .ai-progress[data-phase="error"] .ai-progress-pulse {
+        background: var(--danger);
+      }
+
+      .ai-progress[data-phase="batch-failed"] .ai-progress-pulse {
+        background: var(--warning);
+      }
+
+      .ai-progress[data-phase="cancelled"] .ai-progress-pulse {
+        background: var(--muted);
+      }
+
+      .ai-progress-title {
+        overflow: hidden;
+        font-size: 11px;
+        line-height: 16px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ai-progress-batch,
+      .ai-progress-count {
+        flex: 0 0 auto;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .ai-progress-detail {
+        min-height: 15px;
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 15px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ai-progress-track {
+        position: relative;
+        height: 4px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--brand) 13%, var(--border));
+      }
+
+      .ai-progress-value {
+        width: 0;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--brand);
+        transition: width 240ms ease;
+      }
+
+      .ai-progress[data-phase="complete"] .ai-progress-value {
+        background: var(--success);
+      }
+
+      .ai-progress-track.is-waiting::after {
+        position: absolute;
+        width: 34%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 72%, white), transparent);
+        content: "";
+        inset: 0 auto 0 -34%;
+        animation: ai-progress-scan 1.6s ease-in-out infinite;
+      }
+
+      .ai-progress-diagnostic {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--brand);
+        cursor: pointer;
+        font-size: 10px;
+      }
+
+      @keyframes ai-pulse {
+        0% {
+          box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 34%, transparent);
+        }
+        70%,
+        100% {
+          box-shadow: 0 0 0 5px transparent;
+        }
+      }
+
+      @keyframes ai-progress-scan {
+        from {
+          left: -34%;
+        }
+        to {
+          left: 100%;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .ai-progress-pulse,
+        .ai-progress-track.is-waiting::after {
+          animation: none !important;
+        }
+      }
+
       .ai-badge {
         margin-left: 5px;
         color: var(--brand);
@@ -848,6 +1029,23 @@
             <button class="ai-analyze-button" id="ai-analyze-button" type="button">✦ AI 分析当前选择</button>
             <button class="icon-button" id="ai-clear-button" type="button" title="清除 AI 结果" aria-label="清除 AI 结果" hidden>↺</button>
           </div>
+          <section class="ai-progress" id="ai-progress" data-phase="starting" role="status" aria-live="polite" hidden>
+            <div class="ai-progress-heading">
+              <div class="ai-progress-title-wrap">
+                <span class="ai-progress-pulse" aria-hidden="true"></span>
+                <strong class="ai-progress-title" id="ai-progress-title">正在启动 AI 分析</strong>
+              </div>
+              <span class="ai-progress-batch" id="ai-progress-batch"></span>
+            </div>
+            <p class="ai-progress-detail" id="ai-progress-detail"></p>
+            <div class="ai-progress-track" id="ai-progress-track" role="progressbar" aria-label="AI 已完成命名数量" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+              <div class="ai-progress-value" id="ai-progress-value"></div>
+            </div>
+            <div class="ai-progress-meta">
+              <span class="ai-progress-count" id="ai-progress-count">已命名 0 / 0</span>
+              <button class="ai-progress-diagnostic" id="ai-progress-diagnostic" type="button" hidden>查看错误详情</button>
+            </div>
+          </section>
           <div class="preview-list" id="preview-list"></div>
         </section>
       </div>

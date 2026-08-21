@@ -6,6 +6,7 @@ import {
 } from "./naming";
 import { buildArchive } from "./archive";
 import type {
+  AiAnalysisPhase,
   AiApiFormat,
   AiBridgeStatus,
   AiModelOption,
@@ -27,6 +28,32 @@ const defaultConfig: ExportConfig = {
   scale: 2
 };
 
+type UiAiProgressPhase = AiAnalysisPhase
+  | "starting"
+  | "batch-complete"
+  | "batch-failed"
+  | "cancelling"
+  | "complete"
+  | "cancelled"
+  | "error";
+
+type UiAiProgress = {
+  phase: UiAiProgressPhase;
+  total: number;
+  batch: number;
+  batchCount: number;
+  batchPrepared: number;
+  batchSize: number;
+  prepared: number;
+  named: number;
+  failed: number;
+  failedBatchCount: number;
+  model: string;
+  phaseStartedAt: number;
+  message: string;
+  diagnostic?: AiRequestDiagnostic;
+};
+
 const state: {
   items: ExportableNodeInfo[];
   ignoredCount: number;
@@ -34,6 +61,7 @@ const state: {
   config: ExportConfig;
   aiSettings: AiSettingsView | null;
   aiBusy: boolean;
+  aiProgress: UiAiProgress | null;
   aiSuggestions: Record<string, string>;
   bridgeStatus: AiBridgeStatus | null;
   modelOptions: Record<string, AiModelOption[]>;
@@ -45,6 +73,7 @@ const state: {
   config: { ...defaultConfig },
   aiSettings: null,
   aiBusy: false,
+  aiProgress: null,
   aiSuggestions: {},
   bridgeStatus: null,
   modelOptions: {},
@@ -78,6 +107,14 @@ const aiStrategySelect = element<HTMLSelectElement>("ai-strategy-select");
 const aiProviderSummary = element<HTMLParagraphElement>("ai-provider-summary");
 const aiAnalyzeButton = element<HTMLButtonElement>("ai-analyze-button");
 const aiClearButton = element<HTMLButtonElement>("ai-clear-button");
+const aiProgress = element<HTMLElement>("ai-progress");
+const aiProgressTitle = element<HTMLElement>("ai-progress-title");
+const aiProgressBatch = element<HTMLElement>("ai-progress-batch");
+const aiProgressDetail = element<HTMLElement>("ai-progress-detail");
+const aiProgressTrack = element<HTMLElement>("ai-progress-track");
+const aiProgressValue = element<HTMLElement>("ai-progress-value");
+const aiProgressCount = element<HTMLElement>("ai-progress-count");
+const aiProgressDiagnostic = element<HTMLButtonElement>("ai-progress-diagnostic");
 const aiSettingsButton = element<HTMLButtonElement>("ai-settings-button");
 const aiSettingsView = element<HTMLElement>("ai-settings-view");
 const aiSettingsBack = element<HTMLButtonElement>("ai-settings-back");
@@ -213,6 +250,73 @@ function setStatus(message: string, tone: "neutral" | "success" | "warning" | "e
   status.dataset.tone = tone;
 }
 
+function aiElapsedSeconds(progress: UiAiProgress): number {
+  return Math.max(0, Math.floor((Date.now() - progress.phaseStartedAt) / 1000));
+}
+
+function renderAiProgress(): void {
+  const progress = state.aiProgress;
+  aiProgress.hidden = !progress;
+  if (!progress) return;
+
+  aiProgress.dataset.phase = progress.phase;
+  const elapsed = aiElapsedSeconds(progress);
+  let title = "正在启动 AI 分析";
+  let detail = "正在检查本地服务和模型连接…";
+
+  if (progress.phase === "preparing") {
+    const current = Math.min(progress.batchPrepared + 1, progress.batchSize);
+    title = "正在准备设计图";
+    detail = progress.batchPrepared >= progress.batchSize
+      ? `本批 ${progress.batchSize} 张图片已准备完成`
+      : `正在准备第 ${current} / ${progress.batchSize} 张图片`;
+  } else if (progress.phase === "requesting") {
+    title = elapsed >= 45
+      ? "模型响应较慢，仍在等待"
+      : elapsed >= 15
+        ? "模型仍在处理中"
+        : "正在等待模型返回";
+    detail = `${progress.model || "视觉模型"} · 已等待 ${elapsed} 秒`;
+  } else if (progress.phase === "batch-complete") {
+    title = `第 ${progress.batch} 批分析完成`;
+    detail = progress.batch < progress.batchCount ? "成功结果已更新，正在继续下一批" : "正在汇总最终结果";
+  } else if (progress.phase === "batch-failed") {
+    title = `第 ${progress.batch} 批未能完成`;
+    detail = progress.batch < progress.batchCount ? "错误详情已保留，正在继续下一批" : "正在汇总已成功的结果";
+  } else if (progress.phase === "cancelling") {
+    title = "正在停止本次分析";
+    detail = "已生成的语义名称会保留";
+  } else if (progress.phase === "complete") {
+    title = progress.failed > 0 ? "分析完成，部分文件未命名" : "AI 分析完成";
+    detail = progress.failed > 0
+      ? `${progress.failed} 个文件未命名${progress.failedBatchCount ? ` · ${progress.failedBatchCount} 批请求失败` : ""}`
+      : `全部 ${progress.total} 个文件已生成语义名称`;
+  } else if (progress.phase === "cancelled") {
+    title = "已取消 AI 分析";
+    detail = progress.named > 0 ? `已保留 ${progress.named} 个语义名称` : "没有生成新的语义名称";
+  } else if (progress.phase === "error") {
+    title = "AI 分析未完成";
+    detail = progress.message || "模型没有返回有效的语义名称";
+  }
+
+  aiProgressTitle.textContent = title;
+  aiProgressBatch.textContent = progress.batchCount > 0 && progress.phase !== "cancelled"
+    ? `第 ${Math.max(1, progress.batch)} / ${progress.batchCount} 批`
+    : "";
+  aiProgressDetail.textContent = detail;
+  aiProgressDetail.title = progress.message || detail;
+  aiProgressCount.textContent = progress.phase === "preparing"
+    ? `已准备 ${progress.prepared} / ${progress.total} · 已命名 ${progress.named}`
+    : `已命名 ${progress.named} / ${progress.total}`;
+
+  const percentage = progress.total > 0 ? Math.round((progress.named / progress.total) * 100) : 0;
+  aiProgressValue.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
+  aiProgressTrack.classList.toggle("is-waiting", progress.phase === "requesting");
+  aiProgressTrack.setAttribute("aria-valuemax", String(progress.total));
+  aiProgressTrack.setAttribute("aria-valuenow", String(progress.named));
+  aiProgressDiagnostic.hidden = !progress.diagnostic;
+}
+
 function activeAiProvider(): AiProviderProfileView | null {
   const settings = state.aiSettings;
   if (!settings) return null;
@@ -294,9 +398,11 @@ function renderAiMainControls(): void {
   }
 
   const suggestionCount = Object.keys(state.aiSuggestions).length;
-  aiAnalyzeButton.disabled = state.busy || state.aiBusy || state.items.length === 0;
+  const cancelling = state.aiProgress?.phase === "cancelling";
+  aiAnalyzeButton.disabled = state.busy || cancelling || (!state.aiBusy && state.items.length === 0);
+  aiAnalyzeButton.classList.toggle("is-cancel", state.aiBusy);
   aiAnalyzeButton.textContent = state.aiBusy
-    ? "正在分析设计图…"
+    ? cancelling ? "正在停止…" : "停止本次分析"
     : suggestionCount > 0
       ? "✦ 重新分析当前选择"
       : "✦ AI 分析当前选择";
@@ -513,6 +619,8 @@ function renderActions(): void {
   exportButton.disabled = state.busy || state.aiBusy || state.items.length === 0 || Boolean(error);
   exportButton.textContent = state.busy
     ? "正在准备下载…"
+    : state.aiBusy
+      ? "AI 分析中…"
     : state.items.length > 0
       ? `打包下载 ${state.items.length} 个文件`
       : "打包下载";
@@ -536,6 +644,7 @@ function render(): void {
   renderSelection();
   renderPreview();
   renderActions();
+  renderAiProgress();
 }
 
 function updateConfig(patch: Partial<ExportConfig>): void {
@@ -869,16 +978,51 @@ aiStrategySelect.addEventListener("change", () => {
 });
 
 aiAnalyzeButton.addEventListener("click", () => {
+  if (state.aiBusy) {
+    if (state.aiProgress) {
+      state.aiProgress.phase = "cancelling";
+      state.aiProgress.phaseStartedAt = Date.now();
+    }
+    render();
+    setStatus("正在停止 AI 分析，已完成的名称会保留…");
+    postMessage({ type: "cancel-ai-analysis" });
+    return;
+  }
   const provider = activeAiProvider();
   if (!provider?.baseUrl || !provider.keyConfigured || !provider.model) {
     openAiSettings();
     aiConnectionResult.textContent = "请先完成 Base URL、API Key 和视觉模型配置。";
     return;
   }
+  state.aiSuggestions = {};
   state.aiBusy = true;
+  state.aiProgress = {
+    phase: "starting",
+    total: state.items.length,
+    batch: 1,
+    batchCount: 0,
+    batchPrepared: 0,
+    batchSize: 0,
+    prepared: 0,
+    named: 0,
+    failed: 0,
+    failedBatchCount: 0,
+    model: provider.model,
+    phaseStartedAt: Date.now(),
+    message: ""
+  };
+  renderAiDiagnostic();
   render();
-  setStatus("正在准备设计图分析…");
+  setStatus("AI 分析已启动，进度会按批次实时更新…");
   postMessage({ type: "analyze-selection" });
+});
+
+aiProgressDiagnostic.addEventListener("click", () => {
+  const diagnostic = state.aiProgress?.diagnostic;
+  if (!diagnostic) return;
+  renderAiDiagnostic(diagnostic);
+  openAiSettings("connection");
+  aiRequestDiagnostic.open = true;
 });
 
 aiClearButton.addEventListener("click", () => {
@@ -933,7 +1077,18 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
   if (message.type === "selection") {
     const previousSelection = state.items.map((item) => item.id).join("|");
     const nextSelection = message.items.map((item) => item.id).join("|");
-    if (previousSelection !== nextSelection) state.aiSuggestions = {};
+    if (previousSelection !== nextSelection) {
+      state.aiSuggestions = {};
+      if (state.aiBusy) {
+        if (state.aiProgress) {
+          state.aiProgress.phase = "cancelling";
+          state.aiProgress.phaseStartedAt = Date.now();
+        }
+        postMessage({ type: "cancel-ai-analysis" });
+      } else {
+        state.aiProgress = null;
+      }
+    }
     state.items = message.items;
     state.ignoredCount = message.ignoredCount;
     render();
@@ -983,30 +1138,159 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
 
   if (message.type === "ai-analysis-started") {
     state.aiBusy = true;
-    renderActions();
-    setStatus(`正在分析 0 / ${message.total}…`);
+    state.aiProgress = {
+      phase: "starting",
+      total: message.total,
+      batch: 1,
+      batchCount: message.batchCount,
+      batchPrepared: 0,
+      batchSize: 0,
+      prepared: 0,
+      named: 0,
+      failed: 0,
+      failedBatchCount: 0,
+      model: message.model,
+      phaseStartedAt: Date.now(),
+      message: ""
+    };
+    render();
+    setStatus(`AI 将分 ${message.batchCount} 批分析 ${message.total} 个文件…`);
     return;
   }
 
   if (message.type === "ai-analysis-progress") {
-    setStatus(`正在准备并分析 ${message.completed} / ${message.total}…`);
+    if (!state.aiBusy || !state.aiProgress) return;
+    const phaseChanged = state.aiProgress.phase !== message.phase || state.aiProgress.batch !== message.batch;
+    Object.assign(state.aiProgress, {
+      phase: message.phase,
+      batch: message.batch,
+      batchCount: message.batchCount,
+      batchPrepared: message.batchPrepared,
+      batchSize: message.batchSize,
+      prepared: message.prepared,
+      named: message.named,
+      total: message.total,
+      ...(phaseChanged ? { phaseStartedAt: Date.now() } : {})
+    });
+    renderAiProgress();
+    return;
+  }
+
+  if (message.type === "ai-analysis-batch-complete") {
+    if (!state.aiBusy || !state.aiProgress) return;
+    for (const suggestion of message.suggestions) {
+      state.aiSuggestions[suggestion.nodeId] = suggestion.name;
+    }
+    Object.assign(state.aiProgress, {
+      phase: "batch-complete" as const,
+      batch: message.batch,
+      batchCount: message.batchCount,
+      named: message.named,
+      failed: message.failed,
+      total: message.total,
+      phaseStartedAt: Date.now()
+    });
+    render();
+    setStatus(`第 ${message.batch} / ${message.batchCount} 批完成，已命名 ${message.named} / ${message.total}`);
+    return;
+  }
+
+  if (message.type === "ai-analysis-batch-failed") {
+    if (!state.aiBusy || !state.aiProgress) return;
+    Object.assign(state.aiProgress, {
+      phase: "batch-failed" as const,
+      batch: message.batch,
+      batchCount: message.batchCount,
+      named: message.named,
+      failed: message.failed,
+      total: message.total,
+      failedBatchCount: state.aiProgress.failedBatchCount + 1,
+      phaseStartedAt: Date.now(),
+      message: message.message,
+      diagnostic: message.diagnostic || state.aiProgress.diagnostic
+    });
+    if (message.diagnostic) renderAiDiagnostic(message.diagnostic);
+    render();
+    setStatus(`第 ${message.batch} 批失败，正在继续；已保留 ${message.named} 个名称`, "warning");
     return;
   }
 
   if (message.type === "ai-analysis-complete") {
     state.aiSuggestions = Object.fromEntries(message.suggestions.map((suggestion) => [suggestion.nodeId, suggestion.name]));
     state.aiBusy = false;
+    const named = message.suggestions.length;
+    const total = state.aiProgress?.total || state.items.length;
+    state.aiProgress = {
+      ...(state.aiProgress || {
+        total,
+        batch: 0,
+        batchCount: 0,
+        batchPrepared: 0,
+        batchSize: 0,
+        prepared: total,
+        model: activeAiProvider()?.model || "",
+        phaseStartedAt: Date.now(),
+        message: "",
+        named: 0,
+        failed: 0,
+        failedBatchCount: 0,
+        phase: "complete" as const
+      }),
+      phase: named > 0 ? "complete" : "error",
+      batch: state.aiProgress?.batchCount || 0,
+      named,
+      failed: message.failedNodeIds.length,
+      failedBatchCount: message.failedBatchCount,
+      phaseStartedAt: Date.now(),
+      message: message.message || "",
+      diagnostic: message.diagnostic || state.aiProgress?.diagnostic
+    };
+    if (message.diagnostic) renderAiDiagnostic(message.diagnostic);
     render();
-    const failed = message.failedNodeIds.length ? `，${message.failedNodeIds.length} 个未能命名` : "";
-    setStatus(`AI 已生成 ${message.suggestions.length} 个语义名称${failed}`, message.failedNodeIds.length ? "warning" : "success");
+    if (named === 0) {
+      setStatus("AI 未生成有效名称，可查看错误详情后检查模型能力", "error");
+    } else {
+      const failed = message.failedNodeIds.length ? `，${message.failedNodeIds.length} 个未能命名` : "";
+      setStatus(`AI 已生成 ${named} / ${total} 个语义名称${failed}`, failed ? "warning" : "success");
+    }
+    return;
+  }
+
+  if (message.type === "ai-analysis-cancelled") {
+    const currentNodeIds = new Set(state.items.map((item) => item.id));
+    const currentSuggestions = message.suggestions.filter((suggestion) => currentNodeIds.has(suggestion.nodeId));
+    state.aiSuggestions = Object.fromEntries(currentSuggestions.map((suggestion) => [suggestion.nodeId, suggestion.name]));
+    state.aiBusy = false;
+    const named = currentSuggestions.length;
+    if (state.aiProgress) {
+      Object.assign(state.aiProgress, {
+        phase: "cancelled" as const,
+        named,
+        failed: message.failedNodeIds.length,
+        total: message.total,
+        phaseStartedAt: Date.now()
+      });
+    }
+    render();
+    setStatus(named > 0 ? `已取消分析，并保留 ${named} 个语义名称` : "已取消 AI 分析", "warning");
     return;
   }
 
   if (message.type === "ai-error") {
+    const wasAnalyzing = state.aiBusy;
     state.aiBusy = false;
     aiFetchModels.disabled = false;
+    if (wasAnalyzing && state.aiProgress) {
+      Object.assign(state.aiProgress, {
+        phase: "error" as const,
+        named: Object.keys(state.aiSuggestions).length,
+        phaseStartedAt: Date.now(),
+        message: message.message,
+        diagnostic: message.diagnostic || state.aiProgress.diagnostic
+      });
+    }
     render();
-    setStatus(message.message, "error");
+    setStatus(wasAnalyzing ? "AI 分析未完成，可查看错误详情" : message.message, "error");
     renderAiDiagnostic(message.diagnostic);
     if (!aiSettingsView.hidden) aiConnectionResult.textContent = message.message;
     return;
@@ -1051,4 +1335,7 @@ renderTokens();
 syncControls();
 render();
 postMessage({ type: "ui-ready" });
+window.setInterval(() => {
+  if (state.aiBusy) renderAiProgress();
+}, 1_000);
 window.setInterval(() => postMessage({ type: "check-ai-bridge" }), 60_000);

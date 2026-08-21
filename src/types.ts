@@ -84,6 +84,8 @@ export type AiSuggestion = {
   confidence: number | null;
 };
 
+export type AiAnalysisPhase = "preparing" | "requesting";
+
 export type AiRequestDiagnostic = {
   phase: "models" | "analysis";
   transport: AiRequestTransport;
@@ -127,9 +129,51 @@ export type PluginToUiMessage =
       resolvedApiFormat: ResolvedAiApiFormat;
       transport: AiRequestTransport;
     }
-  | { type: "ai-analysis-started"; total: number }
-  | { type: "ai-analysis-progress"; completed: number; total: number }
-  | { type: "ai-analysis-complete"; suggestions: AiSuggestion[]; failedNodeIds: string[] }
+  | { type: "ai-analysis-started"; total: number; batchCount: number; model: string }
+  | {
+      type: "ai-analysis-progress";
+      phase: AiAnalysisPhase;
+      batch: number;
+      batchCount: number;
+      batchPrepared: number;
+      batchSize: number;
+      prepared: number;
+      named: number;
+      total: number;
+    }
+  | {
+      type: "ai-analysis-batch-complete";
+      batch: number;
+      batchCount: number;
+      suggestions: AiSuggestion[];
+      failed: number;
+      named: number;
+      total: number;
+    }
+  | {
+      type: "ai-analysis-batch-failed";
+      batch: number;
+      batchCount: number;
+      message: string;
+      failed: number;
+      named: number;
+      total: number;
+      diagnostic?: AiRequestDiagnostic;
+    }
+  | {
+      type: "ai-analysis-complete";
+      suggestions: AiSuggestion[];
+      failedNodeIds: string[];
+      failedBatchCount: number;
+      message?: string;
+      diagnostic?: AiRequestDiagnostic;
+    }
+  | {
+      type: "ai-analysis-cancelled";
+      suggestions: AiSuggestion[];
+      failedNodeIds: string[];
+      total: number;
+    }
   | { type: "ai-error"; message: string; diagnostic?: AiRequestDiagnostic }
   | { type: "export-started"; total: number }
   | { type: "export-progress"; completed: number; total: number; currentName: string }
@@ -152,4 +196,5 @@ export type UiToPluginMessage =
     }
   | { type: "check-ai-bridge" }
   | { type: "analyze-selection" }
+  | { type: "cancel-ai-analysis" }
   | { type: "export"; config: ExportConfig; semanticNames?: Record<string, string> };

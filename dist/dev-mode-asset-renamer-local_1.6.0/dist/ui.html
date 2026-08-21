@@ -367,6 +367,187 @@
         background: color-mix(in srgb, var(--brand) 15%, var(--bg));
       }
 
+      .ai-analyze-button.is-cancel {
+        border-color: color-mix(in srgb, var(--danger) 42%, var(--border));
+        background: color-mix(in srgb, var(--danger) 7%, var(--bg));
+        color: var(--danger);
+      }
+
+      .ai-analyze-button.is-cancel:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--danger) 12%, var(--bg));
+      }
+
+      .ai-progress {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid color-mix(in srgb, var(--brand) 32%, var(--border));
+        border-radius: var(--radius);
+        background: color-mix(in srgb, var(--brand) 5%, var(--surface));
+      }
+
+      .ai-progress[hidden] {
+        display: none;
+      }
+
+      .ai-progress[data-phase="complete"] {
+        border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+        background: color-mix(in srgb, var(--success) 5%, var(--surface));
+      }
+
+      .ai-progress[data-phase="error"] {
+        border-color: color-mix(in srgb, var(--danger) 32%, var(--border));
+        background: color-mix(in srgb, var(--danger) 4%, var(--surface));
+      }
+
+      .ai-progress[data-phase="batch-failed"] {
+        border-color: color-mix(in srgb, var(--warning) 34%, var(--border));
+        background: color-mix(in srgb, var(--warning) 5%, var(--surface));
+      }
+
+      .ai-progress[data-phase="cancelled"] {
+        border-color: var(--border);
+        background: var(--surface);
+      }
+
+      .ai-progress-heading,
+      .ai-progress-meta {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .ai-progress-title-wrap {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .ai-progress-pulse {
+        position: relative;
+        width: 7px;
+        height: 7px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: var(--brand);
+      }
+
+      .ai-progress[data-phase="preparing"] .ai-progress-pulse,
+      .ai-progress[data-phase="requesting"] .ai-progress-pulse,
+      .ai-progress[data-phase="starting"] .ai-progress-pulse,
+      .ai-progress[data-phase="cancelling"] .ai-progress-pulse {
+        animation: ai-pulse 1.4s ease-out infinite;
+      }
+
+      .ai-progress[data-phase="complete"] .ai-progress-pulse {
+        background: var(--success);
+      }
+
+      .ai-progress[data-phase="error"] .ai-progress-pulse {
+        background: var(--danger);
+      }
+
+      .ai-progress[data-phase="batch-failed"] .ai-progress-pulse {
+        background: var(--warning);
+      }
+
+      .ai-progress[data-phase="cancelled"] .ai-progress-pulse {
+        background: var(--muted);
+      }
+
+      .ai-progress-title {
+        overflow: hidden;
+        font-size: 11px;
+        line-height: 16px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ai-progress-batch,
+      .ai-progress-count {
+        flex: 0 0 auto;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .ai-progress-detail {
+        min-height: 15px;
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 15px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ai-progress-track {
+        position: relative;
+        height: 4px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--brand) 13%, var(--border));
+      }
+
+      .ai-progress-value {
+        width: 0;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--brand);
+        transition: width 240ms ease;
+      }
+
+      .ai-progress[data-phase="complete"] .ai-progress-value {
+        background: var(--success);
+      }
+
+      .ai-progress-track.is-waiting::after {
+        position: absolute;
+        width: 34%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 72%, white), transparent);
+        content: "";
+        inset: 0 auto 0 -34%;
+        animation: ai-progress-scan 1.6s ease-in-out infinite;
+      }
+
+      .ai-progress-diagnostic {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--brand);
+        cursor: pointer;
+        font-size: 10px;
+      }
+
+      @keyframes ai-pulse {
+        0% {
+          box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 34%, transparent);
+        }
+        70%,
+        100% {
+          box-shadow: 0 0 0 5px transparent;
+        }
+      }
+
+      @keyframes ai-progress-scan {
+        from {
+          left: -34%;
+        }
+        to {
+          left: 100%;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .ai-progress-pulse,
+        .ai-progress-track.is-waiting::after {
+          animation: none !important;
+        }
+      }
+
       .ai-badge {
         margin-left: 5px;
         color: var(--brand);
@@ -848,6 +1029,23 @@
             <button class="ai-analyze-button" id="ai-analyze-button" type="button">✦ AI 分析当前选择</button>
             <button class="icon-button" id="ai-clear-button" type="button" title="清除 AI 结果" aria-label="清除 AI 结果" hidden>↺</button>
           </div>
+          <section class="ai-progress" id="ai-progress" data-phase="starting" role="status" aria-live="polite" hidden>
+            <div class="ai-progress-heading">
+              <div class="ai-progress-title-wrap">
+                <span class="ai-progress-pulse" aria-hidden="true"></span>
+                <strong class="ai-progress-title" id="ai-progress-title">正在启动 AI 分析</strong>
+              </div>
+              <span class="ai-progress-batch" id="ai-progress-batch"></span>
+            </div>
+            <p class="ai-progress-detail" id="ai-progress-detail"></p>
+            <div class="ai-progress-track" id="ai-progress-track" role="progressbar" aria-label="AI 已完成命名数量" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+              <div class="ai-progress-value" id="ai-progress-value"></div>
+            </div>
+            <div class="ai-progress-meta">
+              <span class="ai-progress-count" id="ai-progress-count">已命名 0 / 0</span>
+              <button class="ai-progress-diagnostic" id="ai-progress-diagnostic" type="button" hidden>查看错误详情</button>
+            </div>
+          </section>
           <div class="preview-list" id="preview-list"></div>
         </section>
       </div>
@@ -1879,6 +2077,7 @@
     config: { ...defaultConfig },
     aiSettings: null,
     aiBusy: false,
+    aiProgress: null,
     aiSuggestions: {},
     bridgeStatus: null,
     modelOptions: {},
@@ -1910,6 +2109,14 @@
   var aiProviderSummary = element("ai-provider-summary");
   var aiAnalyzeButton = element("ai-analyze-button");
   var aiClearButton = element("ai-clear-button");
+  var aiProgress = element("ai-progress");
+  var aiProgressTitle = element("ai-progress-title");
+  var aiProgressBatch = element("ai-progress-batch");
+  var aiProgressDetail = element("ai-progress-detail");
+  var aiProgressTrack = element("ai-progress-track");
+  var aiProgressValue = element("ai-progress-value");
+  var aiProgressCount = element("ai-progress-count");
+  var aiProgressDiagnostic = element("ai-progress-diagnostic");
   var aiSettingsButton = element("ai-settings-button");
   var aiSettingsView = element("ai-settings-view");
   var aiSettingsBack = element("ai-settings-back");
@@ -2024,6 +2231,55 @@
     status.textContent = message;
     status.dataset.tone = tone;
   }
+  function aiElapsedSeconds(progress) {
+    return Math.max(0, Math.floor((Date.now() - progress.phaseStartedAt) / 1e3));
+  }
+  function renderAiProgress() {
+    const progress = state.aiProgress;
+    aiProgress.hidden = !progress;
+    if (!progress) return;
+    aiProgress.dataset.phase = progress.phase;
+    const elapsed = aiElapsedSeconds(progress);
+    let title = "\u6B63\u5728\u542F\u52A8 AI \u5206\u6790";
+    let detail = "\u6B63\u5728\u68C0\u67E5\u672C\u5730\u670D\u52A1\u548C\u6A21\u578B\u8FDE\u63A5\u2026";
+    if (progress.phase === "preparing") {
+      const current = Math.min(progress.batchPrepared + 1, progress.batchSize);
+      title = "\u6B63\u5728\u51C6\u5907\u8BBE\u8BA1\u56FE";
+      detail = progress.batchPrepared >= progress.batchSize ? `\u672C\u6279 ${progress.batchSize} \u5F20\u56FE\u7247\u5DF2\u51C6\u5907\u5B8C\u6210` : `\u6B63\u5728\u51C6\u5907\u7B2C ${current} / ${progress.batchSize} \u5F20\u56FE\u7247`;
+    } else if (progress.phase === "requesting") {
+      title = elapsed >= 45 ? "\u6A21\u578B\u54CD\u5E94\u8F83\u6162\uFF0C\u4ECD\u5728\u7B49\u5F85" : elapsed >= 15 ? "\u6A21\u578B\u4ECD\u5728\u5904\u7406\u4E2D" : "\u6B63\u5728\u7B49\u5F85\u6A21\u578B\u8FD4\u56DE";
+      detail = `${progress.model || "\u89C6\u89C9\u6A21\u578B"} \xB7 \u5DF2\u7B49\u5F85 ${elapsed} \u79D2`;
+    } else if (progress.phase === "batch-complete") {
+      title = `\u7B2C ${progress.batch} \u6279\u5206\u6790\u5B8C\u6210`;
+      detail = progress.batch < progress.batchCount ? "\u6210\u529F\u7ED3\u679C\u5DF2\u66F4\u65B0\uFF0C\u6B63\u5728\u7EE7\u7EED\u4E0B\u4E00\u6279" : "\u6B63\u5728\u6C47\u603B\u6700\u7EC8\u7ED3\u679C";
+    } else if (progress.phase === "batch-failed") {
+      title = `\u7B2C ${progress.batch} \u6279\u672A\u80FD\u5B8C\u6210`;
+      detail = progress.batch < progress.batchCount ? "\u9519\u8BEF\u8BE6\u60C5\u5DF2\u4FDD\u7559\uFF0C\u6B63\u5728\u7EE7\u7EED\u4E0B\u4E00\u6279" : "\u6B63\u5728\u6C47\u603B\u5DF2\u6210\u529F\u7684\u7ED3\u679C";
+    } else if (progress.phase === "cancelling") {
+      title = "\u6B63\u5728\u505C\u6B62\u672C\u6B21\u5206\u6790";
+      detail = "\u5DF2\u751F\u6210\u7684\u8BED\u4E49\u540D\u79F0\u4F1A\u4FDD\u7559";
+    } else if (progress.phase === "complete") {
+      title = progress.failed > 0 ? "\u5206\u6790\u5B8C\u6210\uFF0C\u90E8\u5206\u6587\u4EF6\u672A\u547D\u540D" : "AI \u5206\u6790\u5B8C\u6210";
+      detail = progress.failed > 0 ? `${progress.failed} \u4E2A\u6587\u4EF6\u672A\u547D\u540D${progress.failedBatchCount ? ` \xB7 ${progress.failedBatchCount} \u6279\u8BF7\u6C42\u5931\u8D25` : ""}` : `\u5168\u90E8 ${progress.total} \u4E2A\u6587\u4EF6\u5DF2\u751F\u6210\u8BED\u4E49\u540D\u79F0`;
+    } else if (progress.phase === "cancelled") {
+      title = "\u5DF2\u53D6\u6D88 AI \u5206\u6790";
+      detail = progress.named > 0 ? `\u5DF2\u4FDD\u7559 ${progress.named} \u4E2A\u8BED\u4E49\u540D\u79F0` : "\u6CA1\u6709\u751F\u6210\u65B0\u7684\u8BED\u4E49\u540D\u79F0";
+    } else if (progress.phase === "error") {
+      title = "AI \u5206\u6790\u672A\u5B8C\u6210";
+      detail = progress.message || "\u6A21\u578B\u6CA1\u6709\u8FD4\u56DE\u6709\u6548\u7684\u8BED\u4E49\u540D\u79F0";
+    }
+    aiProgressTitle.textContent = title;
+    aiProgressBatch.textContent = progress.batchCount > 0 && progress.phase !== "cancelled" ? `\u7B2C ${Math.max(1, progress.batch)} / ${progress.batchCount} \u6279` : "";
+    aiProgressDetail.textContent = detail;
+    aiProgressDetail.title = progress.message || detail;
+    aiProgressCount.textContent = progress.phase === "preparing" ? `\u5DF2\u51C6\u5907 ${progress.prepared} / ${progress.total} \xB7 \u5DF2\u547D\u540D ${progress.named}` : `\u5DF2\u547D\u540D ${progress.named} / ${progress.total}`;
+    const percentage = progress.total > 0 ? Math.round(progress.named / progress.total * 100) : 0;
+    aiProgressValue.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
+    aiProgressTrack.classList.toggle("is-waiting", progress.phase === "requesting");
+    aiProgressTrack.setAttribute("aria-valuemax", String(progress.total));
+    aiProgressTrack.setAttribute("aria-valuenow", String(progress.named));
+    aiProgressDiagnostic.hidden = !progress.diagnostic;
+  }
   function activeAiProvider() {
     const settings = state.aiSettings;
     if (!settings) return null;
@@ -2095,8 +2351,10 @@
       aiStrategySelect.disabled = state.aiBusy;
     }
     const suggestionCount = Object.keys(state.aiSuggestions).length;
-    aiAnalyzeButton.disabled = state.busy || state.aiBusy || state.items.length === 0;
-    aiAnalyzeButton.textContent = state.aiBusy ? "\u6B63\u5728\u5206\u6790\u8BBE\u8BA1\u56FE\u2026" : suggestionCount > 0 ? "\u2726 \u91CD\u65B0\u5206\u6790\u5F53\u524D\u9009\u62E9" : "\u2726 AI \u5206\u6790\u5F53\u524D\u9009\u62E9";
+    const cancelling = state.aiProgress?.phase === "cancelling";
+    aiAnalyzeButton.disabled = state.busy || cancelling || !state.aiBusy && state.items.length === 0;
+    aiAnalyzeButton.classList.toggle("is-cancel", state.aiBusy);
+    aiAnalyzeButton.textContent = state.aiBusy ? cancelling ? "\u6B63\u5728\u505C\u6B62\u2026" : "\u505C\u6B62\u672C\u6B21\u5206\u6790" : suggestionCount > 0 ? "\u2726 \u91CD\u65B0\u5206\u6790\u5F53\u524D\u9009\u62E9" : "\u2726 AI \u5206\u6790\u5F53\u524D\u9009\u62E9";
     aiClearButton.hidden = suggestionCount === 0;
     aiClearButton.disabled = state.busy || state.aiBusy;
     aiSettingsButton.disabled = state.busy || state.aiBusy;
@@ -2277,7 +2535,7 @@
     });
     const error = namingError();
     exportButton.disabled = state.busy || state.aiBusy || state.items.length === 0 || Boolean(error);
-    exportButton.textContent = state.busy ? "\u6B63\u5728\u51C6\u5907\u4E0B\u8F7D\u2026" : state.items.length > 0 ? `\u6253\u5305\u4E0B\u8F7D ${state.items.length} \u4E2A\u6587\u4EF6` : "\u6253\u5305\u4E0B\u8F7D";
+    exportButton.textContent = state.busy ? "\u6B63\u5728\u51C6\u5907\u4E0B\u8F7D\u2026" : state.aiBusy ? "AI \u5206\u6790\u4E2D\u2026" : state.items.length > 0 ? `\u6253\u5305\u4E0B\u8F7D ${state.items.length} \u4E2A\u6587\u4EF6` : "\u6253\u5305\u4E0B\u8F7D";
     for (const control of [
       formatSelect,
       templateInput,
@@ -2296,6 +2554,7 @@
     renderSelection();
     renderPreview();
     renderActions();
+    renderAiProgress();
   }
   function updateConfig(patch) {
     state.config = { ...state.config, ...patch };
@@ -2598,16 +2857,50 @@
     }
   });
   aiAnalyzeButton.addEventListener("click", () => {
+    if (state.aiBusy) {
+      if (state.aiProgress) {
+        state.aiProgress.phase = "cancelling";
+        state.aiProgress.phaseStartedAt = Date.now();
+      }
+      render();
+      setStatus("\u6B63\u5728\u505C\u6B62 AI \u5206\u6790\uFF0C\u5DF2\u5B8C\u6210\u7684\u540D\u79F0\u4F1A\u4FDD\u7559\u2026");
+      postMessage2({ type: "cancel-ai-analysis" });
+      return;
+    }
     const provider = activeAiProvider();
     if (!provider?.baseUrl || !provider.keyConfigured || !provider.model) {
       openAiSettings();
       aiConnectionResult.textContent = "\u8BF7\u5148\u5B8C\u6210 Base URL\u3001API Key \u548C\u89C6\u89C9\u6A21\u578B\u914D\u7F6E\u3002";
       return;
     }
+    state.aiSuggestions = {};
     state.aiBusy = true;
+    state.aiProgress = {
+      phase: "starting",
+      total: state.items.length,
+      batch: 1,
+      batchCount: 0,
+      batchPrepared: 0,
+      batchSize: 0,
+      prepared: 0,
+      named: 0,
+      failed: 0,
+      failedBatchCount: 0,
+      model: provider.model,
+      phaseStartedAt: Date.now(),
+      message: ""
+    };
+    renderAiDiagnostic();
     render();
-    setStatus("\u6B63\u5728\u51C6\u5907\u8BBE\u8BA1\u56FE\u5206\u6790\u2026");
+    setStatus("AI \u5206\u6790\u5DF2\u542F\u52A8\uFF0C\u8FDB\u5EA6\u4F1A\u6309\u6279\u6B21\u5B9E\u65F6\u66F4\u65B0\u2026");
     postMessage2({ type: "analyze-selection" });
+  });
+  aiProgressDiagnostic.addEventListener("click", () => {
+    const diagnostic = state.aiProgress?.diagnostic;
+    if (!diagnostic) return;
+    renderAiDiagnostic(diagnostic);
+    openAiSettings("connection");
+    aiRequestDiagnostic.open = true;
   });
   aiClearButton.addEventListener("click", () => {
     state.aiSuggestions = {};
@@ -2654,7 +2947,18 @@
     if (message.type === "selection") {
       const previousSelection = state.items.map((item) => item.id).join("|");
       const nextSelection = message.items.map((item) => item.id).join("|");
-      if (previousSelection !== nextSelection) state.aiSuggestions = {};
+      if (previousSelection !== nextSelection) {
+        state.aiSuggestions = {};
+        if (state.aiBusy) {
+          if (state.aiProgress) {
+            state.aiProgress.phase = "cancelling";
+            state.aiProgress.phaseStartedAt = Date.now();
+          }
+          postMessage2({ type: "cancel-ai-analysis" });
+        } else {
+          state.aiProgress = null;
+        }
+      }
       state.items = message.items;
       state.ignoredCount = message.ignoredCount;
       render();
@@ -2697,27 +3001,153 @@
     }
     if (message.type === "ai-analysis-started") {
       state.aiBusy = true;
-      renderActions();
-      setStatus(`\u6B63\u5728\u5206\u6790 0 / ${message.total}\u2026`);
+      state.aiProgress = {
+        phase: "starting",
+        total: message.total,
+        batch: 1,
+        batchCount: message.batchCount,
+        batchPrepared: 0,
+        batchSize: 0,
+        prepared: 0,
+        named: 0,
+        failed: 0,
+        failedBatchCount: 0,
+        model: message.model,
+        phaseStartedAt: Date.now(),
+        message: ""
+      };
+      render();
+      setStatus(`AI \u5C06\u5206 ${message.batchCount} \u6279\u5206\u6790 ${message.total} \u4E2A\u6587\u4EF6\u2026`);
       return;
     }
     if (message.type === "ai-analysis-progress") {
-      setStatus(`\u6B63\u5728\u51C6\u5907\u5E76\u5206\u6790 ${message.completed} / ${message.total}\u2026`);
+      if (!state.aiBusy || !state.aiProgress) return;
+      const phaseChanged = state.aiProgress.phase !== message.phase || state.aiProgress.batch !== message.batch;
+      Object.assign(state.aiProgress, {
+        phase: message.phase,
+        batch: message.batch,
+        batchCount: message.batchCount,
+        batchPrepared: message.batchPrepared,
+        batchSize: message.batchSize,
+        prepared: message.prepared,
+        named: message.named,
+        total: message.total,
+        ...phaseChanged ? { phaseStartedAt: Date.now() } : {}
+      });
+      renderAiProgress();
+      return;
+    }
+    if (message.type === "ai-analysis-batch-complete") {
+      if (!state.aiBusy || !state.aiProgress) return;
+      for (const suggestion of message.suggestions) {
+        state.aiSuggestions[suggestion.nodeId] = suggestion.name;
+      }
+      Object.assign(state.aiProgress, {
+        phase: "batch-complete",
+        batch: message.batch,
+        batchCount: message.batchCount,
+        named: message.named,
+        failed: message.failed,
+        total: message.total,
+        phaseStartedAt: Date.now()
+      });
+      render();
+      setStatus(`\u7B2C ${message.batch} / ${message.batchCount} \u6279\u5B8C\u6210\uFF0C\u5DF2\u547D\u540D ${message.named} / ${message.total}`);
+      return;
+    }
+    if (message.type === "ai-analysis-batch-failed") {
+      if (!state.aiBusy || !state.aiProgress) return;
+      Object.assign(state.aiProgress, {
+        phase: "batch-failed",
+        batch: message.batch,
+        batchCount: message.batchCount,
+        named: message.named,
+        failed: message.failed,
+        total: message.total,
+        failedBatchCount: state.aiProgress.failedBatchCount + 1,
+        phaseStartedAt: Date.now(),
+        message: message.message,
+        diagnostic: message.diagnostic || state.aiProgress.diagnostic
+      });
+      if (message.diagnostic) renderAiDiagnostic(message.diagnostic);
+      render();
+      setStatus(`\u7B2C ${message.batch} \u6279\u5931\u8D25\uFF0C\u6B63\u5728\u7EE7\u7EED\uFF1B\u5DF2\u4FDD\u7559 ${message.named} \u4E2A\u540D\u79F0`, "warning");
       return;
     }
     if (message.type === "ai-analysis-complete") {
       state.aiSuggestions = Object.fromEntries(message.suggestions.map((suggestion) => [suggestion.nodeId, suggestion.name]));
       state.aiBusy = false;
+      const named = message.suggestions.length;
+      const total = state.aiProgress?.total || state.items.length;
+      state.aiProgress = {
+        ...state.aiProgress || {
+          total,
+          batch: 0,
+          batchCount: 0,
+          batchPrepared: 0,
+          batchSize: 0,
+          prepared: total,
+          model: activeAiProvider()?.model || "",
+          phaseStartedAt: Date.now(),
+          message: "",
+          named: 0,
+          failed: 0,
+          failedBatchCount: 0,
+          phase: "complete"
+        },
+        phase: named > 0 ? "complete" : "error",
+        batch: state.aiProgress?.batchCount || 0,
+        named,
+        failed: message.failedNodeIds.length,
+        failedBatchCount: message.failedBatchCount,
+        phaseStartedAt: Date.now(),
+        message: message.message || "",
+        diagnostic: message.diagnostic || state.aiProgress?.diagnostic
+      };
+      if (message.diagnostic) renderAiDiagnostic(message.diagnostic);
       render();
-      const failed = message.failedNodeIds.length ? `\uFF0C${message.failedNodeIds.length} \u4E2A\u672A\u80FD\u547D\u540D` : "";
-      setStatus(`AI \u5DF2\u751F\u6210 ${message.suggestions.length} \u4E2A\u8BED\u4E49\u540D\u79F0${failed}`, message.failedNodeIds.length ? "warning" : "success");
+      if (named === 0) {
+        setStatus("AI \u672A\u751F\u6210\u6709\u6548\u540D\u79F0\uFF0C\u53EF\u67E5\u770B\u9519\u8BEF\u8BE6\u60C5\u540E\u68C0\u67E5\u6A21\u578B\u80FD\u529B", "error");
+      } else {
+        const failed = message.failedNodeIds.length ? `\uFF0C${message.failedNodeIds.length} \u4E2A\u672A\u80FD\u547D\u540D` : "";
+        setStatus(`AI \u5DF2\u751F\u6210 ${named} / ${total} \u4E2A\u8BED\u4E49\u540D\u79F0${failed}`, failed ? "warning" : "success");
+      }
+      return;
+    }
+    if (message.type === "ai-analysis-cancelled") {
+      const currentNodeIds = new Set(state.items.map((item) => item.id));
+      const currentSuggestions = message.suggestions.filter((suggestion) => currentNodeIds.has(suggestion.nodeId));
+      state.aiSuggestions = Object.fromEntries(currentSuggestions.map((suggestion) => [suggestion.nodeId, suggestion.name]));
+      state.aiBusy = false;
+      const named = currentSuggestions.length;
+      if (state.aiProgress) {
+        Object.assign(state.aiProgress, {
+          phase: "cancelled",
+          named,
+          failed: message.failedNodeIds.length,
+          total: message.total,
+          phaseStartedAt: Date.now()
+        });
+      }
+      render();
+      setStatus(named > 0 ? `\u5DF2\u53D6\u6D88\u5206\u6790\uFF0C\u5E76\u4FDD\u7559 ${named} \u4E2A\u8BED\u4E49\u540D\u79F0` : "\u5DF2\u53D6\u6D88 AI \u5206\u6790", "warning");
       return;
     }
     if (message.type === "ai-error") {
+      const wasAnalyzing = state.aiBusy;
       state.aiBusy = false;
       aiFetchModels.disabled = false;
+      if (wasAnalyzing && state.aiProgress) {
+        Object.assign(state.aiProgress, {
+          phase: "error",
+          named: Object.keys(state.aiSuggestions).length,
+          phaseStartedAt: Date.now(),
+          message: message.message,
+          diagnostic: message.diagnostic || state.aiProgress.diagnostic
+        });
+      }
       render();
-      setStatus(message.message, "error");
+      setStatus(wasAnalyzing ? "AI \u5206\u6790\u672A\u5B8C\u6210\uFF0C\u53EF\u67E5\u770B\u9519\u8BEF\u8BE6\u60C5" : message.message, "error");
       renderAiDiagnostic(message.diagnostic);
       if (!aiSettingsView.hidden) aiConnectionResult.textContent = message.message;
       return;
@@ -2755,6 +3185,9 @@
   syncControls();
   render();
   postMessage2({ type: "ui-ready" });
+  window.setInterval(() => {
+    if (state.aiBusy) renderAiProgress();
+  }, 1e3);
   window.setInterval(() => postMessage2({ type: "check-ai-bridge" }), 6e4);
 })();
 

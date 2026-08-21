@@ -15,6 +15,7 @@ import type {
   AiRequestMode,
   AiRequestTransport,
   AiSettingsView,
+  AiSuggestion,
   ExportConfig,
   ExportFormat,
   ExportableNodeInfo,
@@ -30,6 +31,19 @@ const SETTINGS_KEY = "asset-renamer-settings-v1";
 const AI_SETTINGS_KEY = "asset-renamer-ai-settings-v1";
 const AI_BATCH_SIZE = 6;
 const MAX_AI_IMAGE_BYTES = 8 * 1024 * 1024;
+
+type ActiveAiAnalysis = {
+  id: number;
+  suggestions: AiSuggestion[];
+  failedNodeIds: string[];
+  total: number;
+};
+
+type StartingAiAnalysis = Pick<ActiveAiAnalysis, "id" | "total">;
+
+let activeAiAnalysis: ActiveAiAnalysis | null = null;
+let startingAiAnalysis: StartingAiAnalysis | null = null;
+let nextAiAnalysisId = 1;
 
 type StoredAiProvider = Omit<AiProviderProfileView, "resolvedApiFormat" | "keyConfigured" | "maskedApiKey"> & {
   apiKey: string;
@@ -70,6 +84,37 @@ function defaultAiSettings(): StoredAiSettings {
 
 function postMessage(message: PluginToUiMessage): void {
   figma.ui.postMessage(message);
+}
+
+function isActiveAiAnalysis(analysis: ActiveAiAnalysis): boolean {
+  return activeAiAnalysis?.id === analysis.id;
+}
+
+function markAiNodeFailed(analysis: ActiveAiAnalysis, nodeId: string): void {
+  if (!analysis.failedNodeIds.includes(nodeId)) analysis.failedNodeIds.push(nodeId);
+}
+
+function cancelAiAnalysis(): void {
+  const analysis = activeAiAnalysis;
+  if (analysis) {
+    activeAiAnalysis = null;
+    postMessage({
+      type: "ai-analysis-cancelled",
+      suggestions: analysis.suggestions,
+      failedNodeIds: analysis.failedNodeIds,
+      total: analysis.total
+    });
+    return;
+  }
+  const starting = startingAiAnalysis;
+  if (!starting) return;
+  startingAiAnalysis = null;
+  postMessage({
+    type: "ai-analysis-cancelled",
+    suggestions: [],
+    failedNodeIds: [],
+    total: starting.total
+  });
 }
 
 function isExportable(node: SceneNode): node is ExportableSceneNode {
@@ -382,7 +427,28 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 async function analyzeSelection(): Promise<void> {
-  const settings = await readAiSettings();
+  if (activeAiAnalysis || startingAiAnalysis) {
+    postMessage({ type: "ai-error", message: "已有一项 AI 分析正在进行" });
+    return;
+  }
+  const nodes = figma.currentPage.selection.filter(isExportable);
+  const starting: StartingAiAnalysis = {
+    id: nextAiAnalysisId++,
+    total: nodes.length
+  };
+  startingAiAnalysis = starting;
+  let settings: Awaited<ReturnType<typeof readAiSettings>>;
+  try {
+    settings = await readAiSettings();
+  } catch (error) {
+    if (startingAiAnalysis?.id === starting.id) {
+      startingAiAnalysis = null;
+      postMessage({ type: "ai-error", message: formatAiError(error, "无法读取 AI 设置") });
+    }
+    return;
+  }
+  if (startingAiAnalysis?.id !== starting.id) return;
+  startingAiAnalysis = null;
   const provider = settings.providers.find((item) => item.id === settings.activeProviderId);
   if (!provider) {
     postMessage({ type: "ai-error", message: "请先配置 AI 服务" });
@@ -409,88 +475,175 @@ async function analyzeSelection(): Promise<void> {
     postMessage({ type: "ai-error", message: "请选择有效的提示词或 Skill" });
     return;
   }
-  const nodes = figma.currentPage.selection.filter(isExportable);
   if (nodes.length === 0) {
     postMessage({ type: "ai-error", message: "请先选择至少一个可导出的图片或图层" });
     return;
   }
 
-  let transportSelection: Awaited<ReturnType<typeof selectedAiTransport>>;
-  try {
-    transportSelection = await selectedAiTransport(settings.requestMode);
-  } catch (error) {
-    postMessage({ type: "ai-error", message: formatAiError(error) });
-    return;
-  }
+  const batchCount = Math.ceil(nodes.length / AI_BATCH_SIZE);
+  const analysis: ActiveAiAnalysis = {
+    id: starting.id,
+    suggestions: [],
+    failedNodeIds: [],
+    total: nodes.length
+  };
+  activeAiAnalysis = analysis;
+  postMessage({ type: "ai-analysis-started", total: nodes.length, batchCount, model: provider.model });
 
-  postMessage({ type: "ai-analysis-started", total: nodes.length });
-  const suggestions = [] as Awaited<ReturnType<typeof analyzeAiImages>>;
-  const failedNodeIds: string[] = [];
-  let completed = 0;
+  let prepared = 0;
+  let failedBatchCount = 0;
   let lastError = "";
   let lastDiagnostic: AiRequestDiagnostic | undefined;
 
-  for (let offset = 0; offset < nodes.length; offset += AI_BATCH_SIZE) {
-    const batch = nodes.slice(offset, offset + AI_BATCH_SIZE);
-    const images = [] as Parameters<typeof analyzeAiImages>[0]["images"];
-    for (let index = 0; index < batch.length; index += 1) {
-      const node = batch[index];
-      const info = describeNode(node);
-      try {
-        const maxDimension = Math.max(info.width || 1, info.height || 1);
-        const scale = Math.max(0.01, Math.min(1, 768 / maxDimension));
-        const bytes = await node.exportAsync({
-          format: "PNG",
-          constraint: { type: "SCALE", value: scale }
+  try {
+    let transportSelection: Awaited<ReturnType<typeof selectedAiTransport>>;
+    try {
+      transportSelection = await selectedAiTransport(settings.requestMode);
+    } catch (error) {
+      if (isActiveAiAnalysis(analysis)) {
+        postMessage({ type: "ai-error", message: formatAiError(error) });
+      }
+      return;
+    }
+    if (!isActiveAiAnalysis(analysis)) return;
+
+    for (let offset = 0; offset < nodes.length; offset += AI_BATCH_SIZE) {
+      if (!isActiveAiAnalysis(analysis)) return;
+      const batch = nodes.slice(offset, offset + AI_BATCH_SIZE);
+      const batchNumber = Math.floor(offset / AI_BATCH_SIZE) + 1;
+      const images = [] as Parameters<typeof analyzeAiImages>[0]["images"];
+
+      for (let index = 0; index < batch.length; index += 1) {
+        if (!isActiveAiAnalysis(analysis)) return;
+        postMessage({
+          type: "ai-analysis-progress",
+          phase: "preparing",
+          batch: batchNumber,
+          batchCount,
+          batchPrepared: index,
+          batchSize: batch.length,
+          prepared,
+          named: analysis.suggestions.length,
+          total: nodes.length
         });
-        if (bytes.byteLength > MAX_AI_IMAGE_BYTES) {
-          throw new Error("分析缩略图超过 8 MB");
+        const node = batch[index];
+        const info = describeNode(node);
+        try {
+          const maxDimension = Math.max(info.width || 1, info.height || 1);
+          const scale = Math.max(0.01, Math.min(1, 768 / maxDimension));
+          const bytes = await node.exportAsync({
+            format: "PNG",
+            constraint: { type: "SCALE", value: scale }
+          });
+          if (bytes.byteLength > MAX_AI_IMAGE_BYTES) {
+            throw new Error("分析缩略图超过 8 MB");
+          }
+          images.push({
+            ...info,
+            sequence: offset + index + 1,
+            mediaType: "image/png",
+            dataBase64: bytesToBase64(bytes)
+          });
+        } catch (error) {
+          markAiNodeFailed(analysis, node.id);
+          lastError = formatAiError(error, "无法生成分析缩略图");
         }
-        images.push({
-          ...info,
-          sequence: offset + index + 1,
-          mediaType: "image/png",
-          dataBase64: bytesToBase64(bytes)
+        prepared += 1;
+        postMessage({
+          type: "ai-analysis-progress",
+          phase: "preparing",
+          batch: batchNumber,
+          batchCount,
+          batchPrepared: index + 1,
+          batchSize: batch.length,
+          prepared,
+          named: analysis.suggestions.length,
+          total: nodes.length
+        });
+      }
+
+      if (!isActiveAiAnalysis(analysis)) return;
+      if (images.length === 0) {
+        failedBatchCount += 1;
+        postMessage({
+          type: "ai-analysis-batch-failed",
+          batch: batchNumber,
+          batchCount,
+          message: lastError || "这一批图片无法生成分析缩略图",
+          failed: analysis.failedNodeIds.length,
+          named: analysis.suggestions.length,
+          total: nodes.length
+        });
+        continue;
+      }
+
+      postMessage({
+        type: "ai-analysis-progress",
+        phase: "requesting",
+        batch: batchNumber,
+        batchCount,
+        batchPrepared: batch.length,
+        batchSize: batch.length,
+        prepared,
+        named: analysis.suggestions.length,
+        total: nodes.length
+      });
+
+      try {
+        const batchSuggestions = await analyzeAiImages({
+          apiFormat: provider.apiFormat,
+          baseUrl: provider.baseUrl,
+          apiKey: provider.apiKey,
+          model: provider.model,
+          instructions: strategy.content,
+          images
+        }, transportSelection.fetchImpl, transportSelection.transport);
+        if (!isActiveAiAnalysis(analysis)) return;
+        analysis.suggestions.push(...batchSuggestions);
+        const returned = new Set(batchSuggestions.map((item) => item.nodeId));
+        for (const image of images) {
+          if (!returned.has(image.id)) markAiNodeFailed(analysis, image.id);
+        }
+        postMessage({
+          type: "ai-analysis-batch-complete",
+          batch: batchNumber,
+          batchCount,
+          suggestions: batchSuggestions,
+          failed: analysis.failedNodeIds.length,
+          named: analysis.suggestions.length,
+          total: nodes.length
         });
       } catch (error) {
-        failedNodeIds.push(node.id);
-        lastError = formatAiError(error, "无法生成分析缩略图");
-      }
-      completed += 1;
-      postMessage({ type: "ai-analysis-progress", completed, total: nodes.length });
-    }
-    if (images.length === 0) continue;
-    try {
-      suggestions.push(...await analyzeAiImages({
-        apiFormat: provider.apiFormat,
-        baseUrl: provider.baseUrl,
-        apiKey: provider.apiKey,
-        model: provider.model,
-        instructions: strategy.content,
-        images
-      }, transportSelection.fetchImpl, transportSelection.transport));
-      const returned = new Set(suggestions.map((item) => item.nodeId));
-      for (const image of images) {
-        if (!returned.has(image.id) && !failedNodeIds.includes(image.id)) failedNodeIds.push(image.id);
-      }
-    } catch (error) {
-      lastError = formatAiError(error);
-      lastDiagnostic = getAiRequestDiagnostic(error);
-      for (const image of images) {
-        if (!failedNodeIds.includes(image.id)) failedNodeIds.push(image.id);
+        if (!isActiveAiAnalysis(analysis)) return;
+        failedBatchCount += 1;
+        lastError = formatAiError(error);
+        lastDiagnostic = getAiRequestDiagnostic(error);
+        for (const image of images) markAiNodeFailed(analysis, image.id);
+        postMessage({
+          type: "ai-analysis-batch-failed",
+          batch: batchNumber,
+          batchCount,
+          message: lastError,
+          failed: analysis.failedNodeIds.length,
+          named: analysis.suggestions.length,
+          total: nodes.length,
+          ...(lastDiagnostic ? { diagnostic: lastDiagnostic } : {})
+        });
       }
     }
-  }
 
-  if (suggestions.length === 0) {
+    if (!isActiveAiAnalysis(analysis)) return;
     postMessage({
-      type: "ai-error",
-      message: lastError || "AI 未能生成有效的语义名称",
+      type: "ai-analysis-complete",
+      suggestions: analysis.suggestions,
+      failedNodeIds: analysis.failedNodeIds,
+      failedBatchCount,
+      ...(analysis.failedNodeIds.length ? { message: lastError || "部分图片未能生成有效的语义名称" } : {}),
       ...(lastDiagnostic ? { diagnostic: lastDiagnostic } : {})
     });
-    return;
+  } finally {
+    if (activeAiAnalysis?.id === analysis.id) activeAiAnalysis = null;
   }
-  postMessage({ type: "ai-analysis-complete", suggestions, failedNodeIds });
 }
 
 if (figma.editorType !== "dev") {
@@ -528,6 +681,10 @@ if (figma.editorType !== "dev") {
     }
     if (message.type === "analyze-selection") {
       void analyzeSelection();
+      return;
+    }
+    if (message.type === "cancel-ai-analysis") {
+      cancelAiAnalysis();
       return;
     }
     if (message.type === "export") {

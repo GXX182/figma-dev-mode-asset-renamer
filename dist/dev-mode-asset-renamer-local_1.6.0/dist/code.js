@@ -732,6 +732,9 @@ ${assets}`
   var AI_SETTINGS_KEY = "asset-renamer-ai-settings-v1";
   var AI_BATCH_SIZE = 6;
   var MAX_AI_IMAGE_BYTES = 8 * 1024 * 1024;
+  var activeAiAnalysis = null;
+  var startingAiAnalysis = null;
+  var nextAiAnalysisId = 1;
   var DEFAULT_AI_PROMPT = {
     id: "prompt-default",
     name: "\u901A\u7528\u7D20\u6750\u547D\u540D",
@@ -761,6 +764,34 @@ ${assets}`
   }
   function postMessage(message) {
     figma.ui.postMessage(message);
+  }
+  function isActiveAiAnalysis(analysis) {
+    return activeAiAnalysis?.id === analysis.id;
+  }
+  function markAiNodeFailed(analysis, nodeId) {
+    if (!analysis.failedNodeIds.includes(nodeId)) analysis.failedNodeIds.push(nodeId);
+  }
+  function cancelAiAnalysis() {
+    const analysis = activeAiAnalysis;
+    if (analysis) {
+      activeAiAnalysis = null;
+      postMessage({
+        type: "ai-analysis-cancelled",
+        suggestions: analysis.suggestions,
+        failedNodeIds: analysis.failedNodeIds,
+        total: analysis.total
+      });
+      return;
+    }
+    const starting = startingAiAnalysis;
+    if (!starting) return;
+    startingAiAnalysis = null;
+    postMessage({
+      type: "ai-analysis-cancelled",
+      suggestions: [],
+      failedNodeIds: [],
+      total: starting.total
+    });
   }
   function isExportable(node) {
     return "exportAsync" in node && typeof node.exportAsync === "function";
@@ -1023,7 +1054,28 @@ ${assets}`
     return output;
   }
   async function analyzeSelection() {
-    const settings = await readAiSettings();
+    if (activeAiAnalysis || startingAiAnalysis) {
+      postMessage({ type: "ai-error", message: "\u5DF2\u6709\u4E00\u9879 AI \u5206\u6790\u6B63\u5728\u8FDB\u884C" });
+      return;
+    }
+    const nodes = figma.currentPage.selection.filter(isExportable);
+    const starting = {
+      id: nextAiAnalysisId++,
+      total: nodes.length
+    };
+    startingAiAnalysis = starting;
+    let settings;
+    try {
+      settings = await readAiSettings();
+    } catch (error) {
+      if (startingAiAnalysis?.id === starting.id) {
+        startingAiAnalysis = null;
+        postMessage({ type: "ai-error", message: formatAiError(error, "\u65E0\u6CD5\u8BFB\u53D6 AI \u8BBE\u7F6E") });
+      }
+      return;
+    }
+    if (startingAiAnalysis?.id !== starting.id) return;
+    startingAiAnalysis = null;
     const provider = settings.providers.find((item) => item.id === settings.activeProviderId);
     if (!provider) {
       postMessage({ type: "ai-error", message: "\u8BF7\u5148\u914D\u7F6E AI \u670D\u52A1" });
@@ -1048,84 +1100,166 @@ ${assets}`
       postMessage({ type: "ai-error", message: "\u8BF7\u9009\u62E9\u6709\u6548\u7684\u63D0\u793A\u8BCD\u6216 Skill" });
       return;
     }
-    const nodes = figma.currentPage.selection.filter(isExportable);
     if (nodes.length === 0) {
       postMessage({ type: "ai-error", message: "\u8BF7\u5148\u9009\u62E9\u81F3\u5C11\u4E00\u4E2A\u53EF\u5BFC\u51FA\u7684\u56FE\u7247\u6216\u56FE\u5C42" });
       return;
     }
-    let transportSelection;
-    try {
-      transportSelection = await selectedAiTransport(settings.requestMode);
-    } catch (error) {
-      postMessage({ type: "ai-error", message: formatAiError(error) });
-      return;
-    }
-    postMessage({ type: "ai-analysis-started", total: nodes.length });
-    const suggestions = [];
-    const failedNodeIds = [];
-    let completed = 0;
+    const batchCount = Math.ceil(nodes.length / AI_BATCH_SIZE);
+    const analysis = {
+      id: starting.id,
+      suggestions: [],
+      failedNodeIds: [],
+      total: nodes.length
+    };
+    activeAiAnalysis = analysis;
+    postMessage({ type: "ai-analysis-started", total: nodes.length, batchCount, model: provider.model });
+    let prepared = 0;
+    let failedBatchCount = 0;
     let lastError = "";
     let lastDiagnostic;
-    for (let offset = 0; offset < nodes.length; offset += AI_BATCH_SIZE) {
-      const batch = nodes.slice(offset, offset + AI_BATCH_SIZE);
-      const images = [];
-      for (let index = 0; index < batch.length; index += 1) {
-        const node = batch[index];
-        const info = describeNode(node);
-        try {
-          const maxDimension = Math.max(info.width || 1, info.height || 1);
-          const scale = Math.max(0.01, Math.min(1, 768 / maxDimension));
-          const bytes = await node.exportAsync({
-            format: "PNG",
-            constraint: { type: "SCALE", value: scale }
+    try {
+      let transportSelection;
+      try {
+        transportSelection = await selectedAiTransport(settings.requestMode);
+      } catch (error) {
+        if (isActiveAiAnalysis(analysis)) {
+          postMessage({ type: "ai-error", message: formatAiError(error) });
+        }
+        return;
+      }
+      if (!isActiveAiAnalysis(analysis)) return;
+      for (let offset = 0; offset < nodes.length; offset += AI_BATCH_SIZE) {
+        if (!isActiveAiAnalysis(analysis)) return;
+        const batch = nodes.slice(offset, offset + AI_BATCH_SIZE);
+        const batchNumber = Math.floor(offset / AI_BATCH_SIZE) + 1;
+        const images = [];
+        for (let index = 0; index < batch.length; index += 1) {
+          if (!isActiveAiAnalysis(analysis)) return;
+          postMessage({
+            type: "ai-analysis-progress",
+            phase: "preparing",
+            batch: batchNumber,
+            batchCount,
+            batchPrepared: index,
+            batchSize: batch.length,
+            prepared,
+            named: analysis.suggestions.length,
+            total: nodes.length
           });
-          if (bytes.byteLength > MAX_AI_IMAGE_BYTES) {
-            throw new Error("\u5206\u6790\u7F29\u7565\u56FE\u8D85\u8FC7 8 MB");
+          const node = batch[index];
+          const info = describeNode(node);
+          try {
+            const maxDimension = Math.max(info.width || 1, info.height || 1);
+            const scale = Math.max(0.01, Math.min(1, 768 / maxDimension));
+            const bytes = await node.exportAsync({
+              format: "PNG",
+              constraint: { type: "SCALE", value: scale }
+            });
+            if (bytes.byteLength > MAX_AI_IMAGE_BYTES) {
+              throw new Error("\u5206\u6790\u7F29\u7565\u56FE\u8D85\u8FC7 8 MB");
+            }
+            images.push({
+              ...info,
+              sequence: offset + index + 1,
+              mediaType: "image/png",
+              dataBase64: bytesToBase64(bytes)
+            });
+          } catch (error) {
+            markAiNodeFailed(analysis, node.id);
+            lastError = formatAiError(error, "\u65E0\u6CD5\u751F\u6210\u5206\u6790\u7F29\u7565\u56FE");
           }
-          images.push({
-            ...info,
-            sequence: offset + index + 1,
-            mediaType: "image/png",
-            dataBase64: bytesToBase64(bytes)
+          prepared += 1;
+          postMessage({
+            type: "ai-analysis-progress",
+            phase: "preparing",
+            batch: batchNumber,
+            batchCount,
+            batchPrepared: index + 1,
+            batchSize: batch.length,
+            prepared,
+            named: analysis.suggestions.length,
+            total: nodes.length
+          });
+        }
+        if (!isActiveAiAnalysis(analysis)) return;
+        if (images.length === 0) {
+          failedBatchCount += 1;
+          postMessage({
+            type: "ai-analysis-batch-failed",
+            batch: batchNumber,
+            batchCount,
+            message: lastError || "\u8FD9\u4E00\u6279\u56FE\u7247\u65E0\u6CD5\u751F\u6210\u5206\u6790\u7F29\u7565\u56FE",
+            failed: analysis.failedNodeIds.length,
+            named: analysis.suggestions.length,
+            total: nodes.length
+          });
+          continue;
+        }
+        postMessage({
+          type: "ai-analysis-progress",
+          phase: "requesting",
+          batch: batchNumber,
+          batchCount,
+          batchPrepared: batch.length,
+          batchSize: batch.length,
+          prepared,
+          named: analysis.suggestions.length,
+          total: nodes.length
+        });
+        try {
+          const batchSuggestions = await analyzeAiImages({
+            apiFormat: provider.apiFormat,
+            baseUrl: provider.baseUrl,
+            apiKey: provider.apiKey,
+            model: provider.model,
+            instructions: strategy.content,
+            images
+          }, transportSelection.fetchImpl, transportSelection.transport);
+          if (!isActiveAiAnalysis(analysis)) return;
+          analysis.suggestions.push(...batchSuggestions);
+          const returned = new Set(batchSuggestions.map((item) => item.nodeId));
+          for (const image of images) {
+            if (!returned.has(image.id)) markAiNodeFailed(analysis, image.id);
+          }
+          postMessage({
+            type: "ai-analysis-batch-complete",
+            batch: batchNumber,
+            batchCount,
+            suggestions: batchSuggestions,
+            failed: analysis.failedNodeIds.length,
+            named: analysis.suggestions.length,
+            total: nodes.length
           });
         } catch (error) {
-          failedNodeIds.push(node.id);
-          lastError = formatAiError(error, "\u65E0\u6CD5\u751F\u6210\u5206\u6790\u7F29\u7565\u56FE");
-        }
-        completed += 1;
-        postMessage({ type: "ai-analysis-progress", completed, total: nodes.length });
-      }
-      if (images.length === 0) continue;
-      try {
-        suggestions.push(...await analyzeAiImages({
-          apiFormat: provider.apiFormat,
-          baseUrl: provider.baseUrl,
-          apiKey: provider.apiKey,
-          model: provider.model,
-          instructions: strategy.content,
-          images
-        }, transportSelection.fetchImpl, transportSelection.transport));
-        const returned = new Set(suggestions.map((item) => item.nodeId));
-        for (const image of images) {
-          if (!returned.has(image.id) && !failedNodeIds.includes(image.id)) failedNodeIds.push(image.id);
-        }
-      } catch (error) {
-        lastError = formatAiError(error);
-        lastDiagnostic = getAiRequestDiagnostic(error);
-        for (const image of images) {
-          if (!failedNodeIds.includes(image.id)) failedNodeIds.push(image.id);
+          if (!isActiveAiAnalysis(analysis)) return;
+          failedBatchCount += 1;
+          lastError = formatAiError(error);
+          lastDiagnostic = getAiRequestDiagnostic(error);
+          for (const image of images) markAiNodeFailed(analysis, image.id);
+          postMessage({
+            type: "ai-analysis-batch-failed",
+            batch: batchNumber,
+            batchCount,
+            message: lastError,
+            failed: analysis.failedNodeIds.length,
+            named: analysis.suggestions.length,
+            total: nodes.length,
+            ...lastDiagnostic ? { diagnostic: lastDiagnostic } : {}
+          });
         }
       }
-    }
-    if (suggestions.length === 0) {
+      if (!isActiveAiAnalysis(analysis)) return;
       postMessage({
-        type: "ai-error",
-        message: lastError || "AI \u672A\u80FD\u751F\u6210\u6709\u6548\u7684\u8BED\u4E49\u540D\u79F0",
+        type: "ai-analysis-complete",
+        suggestions: analysis.suggestions,
+        failedNodeIds: analysis.failedNodeIds,
+        failedBatchCount,
+        ...analysis.failedNodeIds.length ? { message: lastError || "\u90E8\u5206\u56FE\u7247\u672A\u80FD\u751F\u6210\u6709\u6548\u7684\u8BED\u4E49\u540D\u79F0" } : {},
         ...lastDiagnostic ? { diagnostic: lastDiagnostic } : {}
       });
-      return;
+    } finally {
+      if (activeAiAnalysis?.id === analysis.id) activeAiAnalysis = null;
     }
-    postMessage({ type: "ai-analysis-complete", suggestions, failedNodeIds });
   }
   if (figma.editorType !== "dev") {
     figma.notify("\u8BF7\u5728 Figma Dev Mode \u4E2D\u8FD0\u884C\u201C\u56FE\u7247\u547D\u540D\u4E0B\u8F7D\u201D");
@@ -1161,6 +1295,10 @@ ${assets}`
       }
       if (message.type === "analyze-selection") {
         void analyzeSelection();
+        return;
+      }
+      if (message.type === "cancel-ai-analysis") {
+        cancelAiAnalysis();
         return;
       }
       if (message.type === "export") {
