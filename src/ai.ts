@@ -73,6 +73,44 @@ function utf8ByteLength(value: string): number {
   return bytes;
 }
 
+export function formatAiError(error: unknown, fallback = "AI 服务请求失败，请检查 Base URL、网络权限和接口兼容性"): string {
+  const visit = (value: unknown, depth: number): string => {
+    if (typeof value === "string") {
+      const text = value.trim();
+      return text && text !== "[object Object]" ? text : "";
+    }
+    if (!value || typeof value !== "object" || depth > 2) return "";
+    const record = value as Record<string, unknown>;
+    for (const key of ["message", "error_description", "detail", "reason"] as const) {
+      const text = visit(record[key], depth + 1);
+      if (text) return text;
+    }
+    const nested = visit(record.error, depth + 1) || visit(record.cause, depth + 1);
+    if (nested) return nested;
+    const status = typeof record.status === "number" || typeof record.status === "string"
+      ? String(record.status)
+      : "";
+    const code = typeof record.code === "string" || typeof record.code === "number"
+      ? String(record.code)
+      : "";
+    const label = [status ? `HTTP ${status}` : "", code ? `错误码 ${code}` : ""].filter(Boolean).join("，");
+    return label;
+  };
+  return visit(error, 0).slice(0, 500) || fallback;
+}
+
+function responseHeader(response: Response, name: string): string {
+  const compatible = response as Response & { headersObject?: Record<string, string> };
+  if (compatible.headers && typeof compatible.headers.get === "function") {
+    return compatible.headers.get(name) || "";
+  }
+  const headers = compatible.headersObject;
+  if (!headers) return "";
+  const target = name.toLowerCase();
+  const key = Object.keys(headers).find((item) => item.toLowerCase() === target);
+  return key ? headers[key] : "";
+}
+
 export function detectAiApiFormat(baseUrl: string): ResolvedAiApiFormat {
   const url = parseHttpUrl(baseUrl);
   const host = url.hostname;
@@ -164,15 +202,15 @@ async function fetchJson(
   init: RequestInit,
   fetchImpl: typeof fetch = fetch
 ): Promise<Record<string, unknown>> {
-  const controller = typeof AbortController === "function" ? new AbortController() : null;
-  const timer = setTimeout(() => controller?.abort(), REQUEST_TIMEOUT_MS);
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const response = await fetchImpl(endpoint, {
-      ...init,
-      ...(controller ? { signal: controller.signal } : {}),
-      redirect: "error"
-    });
-    const declaredLength = Number(response.headers.get("content-length") || 0);
+    const response = await Promise.race([
+      fetchImpl(endpoint, { ...init, redirect: "error" }),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("AI 服务请求超时")), REQUEST_TIMEOUT_MS);
+      })
+    ]);
+    const declaredLength = Number(responseHeader(response, "content-length") || 0);
     if (declaredLength > MAX_RESPONSE_BYTES) {
       throw new Error("AI 服务响应过大");
     }
@@ -190,12 +228,9 @@ async function fetchJson(
     }
     return value as Record<string, unknown>;
   } catch (error) {
-    if (error && typeof error === "object" && "name" in error && error.name === "AbortError") {
-      throw new Error("AI 服务请求超时");
-    }
-    throw error;
+    throw new Error(formatAiError(error));
   } finally {
-    clearTimeout(timer);
+    if (timer !== undefined) clearTimeout(timer);
   }
 }
 

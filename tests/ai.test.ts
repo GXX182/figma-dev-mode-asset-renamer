@@ -1,4 +1,4 @@
-import { analyzeAiImages, detectAiApiFormat, listAiModels } from "../src/ai";
+import { analyzeAiImages, detectAiApiFormat, formatAiError, listAiModels } from "../src/ai";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -31,6 +31,27 @@ assert(
   detectAiApiFormat("https://unknown.example.com/v1") === "openai-compatible",
   "未知中转地址应回退到 OpenAI 兼容协议"
 );
+assert(
+  formatAiError({ error: { message: "Figma network request failed" } }) === "Figma network request failed",
+  "Figma 对象型错误没有被正确提取"
+);
+
+const figmaResponseModels = await listAiModels({
+  apiFormat: "openai-compatible",
+  baseUrl: "https://figma-response.example.com/v1",
+  apiKey: "test-secret",
+  model: ""
+}, async () => ({
+  headersObject: { "content-length": "38" },
+  ok: true,
+  redirected: false,
+  status: 200,
+  statusText: "OK",
+  type: "basic",
+  url: "https://figma-response.example.com/v1/models",
+  text: async () => JSON.stringify({ data: [{ id: "vision-model" }] })
+}) as unknown as Response);
+assert(figmaResponseModels.models[0]?.id === "vision-model", "Figma FetchResponse 兼容失败");
 
 let modelsRequestUrl = "";
 let modelsAuthorization = "";

@@ -165,6 +165,38 @@
     }
     return bytes;
   }
+  function formatAiError(error, fallback = "AI \u670D\u52A1\u8BF7\u6C42\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5 Base URL\u3001\u7F51\u7EDC\u6743\u9650\u548C\u63A5\u53E3\u517C\u5BB9\u6027") {
+    const visit = (value, depth) => {
+      if (typeof value === "string") {
+        const text = value.trim();
+        return text && text !== "[object Object]" ? text : "";
+      }
+      if (!value || typeof value !== "object" || depth > 2) return "";
+      const record = value;
+      for (const key of ["message", "error_description", "detail", "reason"]) {
+        const text = visit(record[key], depth + 1);
+        if (text) return text;
+      }
+      const nested = visit(record.error, depth + 1) || visit(record.cause, depth + 1);
+      if (nested) return nested;
+      const status = typeof record.status === "number" || typeof record.status === "string" ? String(record.status) : "";
+      const code = typeof record.code === "string" || typeof record.code === "number" ? String(record.code) : "";
+      const label = [status ? `HTTP ${status}` : "", code ? `\u9519\u8BEF\u7801 ${code}` : ""].filter(Boolean).join("\uFF0C");
+      return label;
+    };
+    return visit(error, 0).slice(0, 500) || fallback;
+  }
+  function responseHeader(response, name) {
+    const compatible = response;
+    if (compatible.headers && typeof compatible.headers.get === "function") {
+      return compatible.headers.get(name) || "";
+    }
+    const headers = compatible.headersObject;
+    if (!headers) return "";
+    const target = name.toLowerCase();
+    const key = Object.keys(headers).find((item) => item.toLowerCase() === target);
+    return key ? headers[key] : "";
+  }
   function detectAiApiFormat(baseUrl) {
     const url = parseHttpUrl(baseUrl);
     const host = url.hostname;
@@ -228,15 +260,15 @@
     return { "content-type": "application/json", authorization: `Bearer ${apiKey}` };
   }
   async function fetchJson(endpoint, init, fetchImpl = fetch) {
-    const controller = typeof AbortController === "function" ? new AbortController() : null;
-    const timer = setTimeout(() => controller?.abort(), REQUEST_TIMEOUT_MS);
+    let timer;
     try {
-      const response = await fetchImpl(endpoint, {
-        ...init,
-        ...controller ? { signal: controller.signal } : {},
-        redirect: "error"
-      });
-      const declaredLength = Number(response.headers.get("content-length") || 0);
+      const response = await Promise.race([
+        fetchImpl(endpoint, { ...init, redirect: "error" }),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error("AI \u670D\u52A1\u8BF7\u6C42\u8D85\u65F6")), REQUEST_TIMEOUT_MS);
+        })
+      ]);
+      const declaredLength = Number(responseHeader(response, "content-length") || 0);
       if (declaredLength > MAX_RESPONSE_BYTES) {
         throw new Error("AI \u670D\u52A1\u54CD\u5E94\u8FC7\u5927");
       }
@@ -254,12 +286,9 @@
       }
       return value;
     } catch (error) {
-      if (error && typeof error === "object" && "name" in error && error.name === "AbortError") {
-        throw new Error("AI \u670D\u52A1\u8BF7\u6C42\u8D85\u65F6");
-      }
-      throw error;
+      throw new Error(formatAiError(error));
     } finally {
-      clearTimeout(timer);
+      if (timer !== void 0) clearTimeout(timer);
     }
   }
   function records(value) {
@@ -666,7 +695,7 @@ ${assets}`
         resolvedApiFormat: result.resolvedApiFormat
       });
     } catch (error) {
-      postMessage({ type: "ai-error", message: error instanceof Error ? error.message : String(error) });
+      postMessage({ type: "ai-error", message: formatAiError(error) });
     }
   }
   async function saveSettings(config) {
@@ -767,7 +796,7 @@ ${assets}`
     try {
       validateAiBaseUrl(provider.baseUrl);
     } catch (error) {
-      postMessage({ type: "ai-error", message: error instanceof Error ? error.message : String(error) });
+      postMessage({ type: "ai-error", message: formatAiError(error) });
       return;
     }
     if (!provider.apiKey) {
@@ -817,7 +846,7 @@ ${assets}`
           });
         } catch (error) {
           failedNodeIds.push(node.id);
-          lastError = error instanceof Error ? error.message : String(error);
+          lastError = formatAiError(error, "\u65E0\u6CD5\u751F\u6210\u5206\u6790\u7F29\u7565\u56FE");
         }
         completed += 1;
         postMessage({ type: "ai-analysis-progress", completed, total: nodes.length });
@@ -837,7 +866,7 @@ ${assets}`
           if (!returned.has(image.id) && !failedNodeIds.includes(image.id)) failedNodeIds.push(image.id);
         }
       } catch (error) {
-        lastError = error instanceof Error ? error.message : String(error);
+        lastError = formatAiError(error);
         for (const image of images) {
           if (!failedNodeIds.includes(image.id)) failedNodeIds.push(image.id);
         }

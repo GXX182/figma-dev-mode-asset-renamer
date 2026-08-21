@@ -1,5 +1,5 @@
 import { buildDownloadNames, findUnknownTokens } from "./naming";
-import { analyzeAiImages, listAiModels, resolveAiApiFormat, validateAiBaseUrl } from "./ai";
+import { analyzeAiImages, formatAiError, listAiModels, resolveAiApiFormat, validateAiBaseUrl } from "./ai";
 import type {
   AiApiFormat,
   AiProviderProfileView,
@@ -230,7 +230,7 @@ async function postAiModels(providerView: AiProviderProfileView, suppliedApiKey?
       resolvedApiFormat: result.resolvedApiFormat
     });
   } catch (error) {
-    postMessage({ type: "ai-error", message: error instanceof Error ? error.message : String(error) });
+    postMessage({ type: "ai-error", message: formatAiError(error) });
   }
 }
 
@@ -344,7 +344,7 @@ async function analyzeSelection(): Promise<void> {
   try {
     validateAiBaseUrl(provider.baseUrl);
   } catch (error) {
-    postMessage({ type: "ai-error", message: error instanceof Error ? error.message : String(error) });
+    postMessage({ type: "ai-error", message: formatAiError(error) });
     return;
   }
   if (!provider.apiKey) {
@@ -398,7 +398,7 @@ async function analyzeSelection(): Promise<void> {
         });
       } catch (error) {
         failedNodeIds.push(node.id);
-        lastError = error instanceof Error ? error.message : String(error);
+        lastError = formatAiError(error, "无法生成分析缩略图");
       }
       completed += 1;
       postMessage({ type: "ai-analysis-progress", completed, total: nodes.length });
@@ -418,7 +418,7 @@ async function analyzeSelection(): Promise<void> {
         if (!returned.has(image.id) && !failedNodeIds.includes(image.id)) failedNodeIds.push(image.id);
       }
     } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error);
+      lastError = formatAiError(error);
       for (const image of images) {
         if (!failedNodeIds.includes(image.id)) failedNodeIds.push(image.id);
       }
