@@ -1,5 +1,5 @@
 import { build, context } from "esbuild";
-import { mkdirSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,6 +7,23 @@ const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDirectory, "..");
 const distDirectory = resolve(projectRoot, "dist");
 const watchMode = process.argv.includes("--watch");
+const manifestPath = resolve(projectRoot, "manifest.json");
+const packagePath = resolve(projectRoot, "package.json");
+const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
+
+function safeDirectorySegment(value, label) {
+  if (typeof value !== "string" || !/^[a-zA-Z0-9._-]+$/u.test(value)) {
+    throw new Error(`${label} 只能包含字母、数字、点、下划线或短横线`);
+  }
+  return value;
+}
+
+const pluginId = safeDirectorySegment(manifest.id, "manifest.id");
+const packageVersion = safeDirectorySegment(packageJson.version, "package.json version");
+const releaseName = `${pluginId}_${packageVersion}`;
+const releaseDirectory = resolve(distDirectory, releaseName);
+const releaseAssetsDirectory = resolve(releaseDirectory, "dist");
 
 const sharedOptions = {
   bundle: true,
@@ -46,10 +63,42 @@ function inlineUiScript() {
   writeFileSync(resolve(distDirectory, "ui.html"), output, "utf8");
 }
 
+function writeReleasePackage() {
+  const codePath = resolve(distDirectory, "code.js");
+  const uiPath = resolve(distDirectory, "ui.html");
+  if (!existsSync(codePath) || !existsSync(uiPath)) {
+    throw new Error("发布包生成失败：缺少 dist/code.js 或 dist/ui.html");
+  }
+
+  rmSync(releaseDirectory, { recursive: true, force: true });
+  mkdirSync(releaseAssetsDirectory, { recursive: true });
+  copyFileSync(codePath, resolve(releaseAssetsDirectory, "code.js"));
+  copyFileSync(uiPath, resolve(releaseAssetsDirectory, "ui.html"));
+
+  const releaseManifest = {
+    ...manifest,
+    main: "dist/code.js",
+    ui: "dist/ui.html"
+  };
+  writeFileSync(
+    resolve(releaseDirectory, "manifest.json"),
+    `${JSON.stringify(releaseManifest, null, 2)}\n`,
+    "utf8"
+  );
+
+  const declaredFiles = [releaseManifest.main, releaseManifest.ui]
+    .map((relativePath) => resolve(releaseDirectory, relativePath));
+  if (declaredFiles.some((filePath) => !existsSync(filePath))) {
+    throw new Error("发布包校验失败：manifest.json 引用的构建文件不存在");
+  }
+  process.stdout.write(`发布包已生成：${releaseDirectory}\n`);
+}
+
 async function buildAll() {
   await build(codeOptions);
   await build(uiOptions);
   inlineUiScript();
+  writeReleasePackage();
 }
 
 async function run() {

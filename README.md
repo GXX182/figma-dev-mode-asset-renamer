@@ -44,6 +44,19 @@ AI 分析成功后，语义名称会自动替代 `{name}` 的输入值，因此�
 ## 开发
 
 - `npm run watch`：监听并重新构建。
+- `npm run build`：生成开发产物，并在 `dist/dev-mode-asset-renamer-local_<version>/` 生成可独立导入的版本发布目录。
 - `npm run check`：执行类型检查、命名规则测试和生产构建。
+
+日常开发可继续从项目根目录导入 `manifest.json`。构建后的交付版本应导入版本目录中的清单，例如：
+
+```text
+dist/dev-mode-asset-renamer-local_1.4.0/
+├─ manifest.json
+└─ dist/
+   ├─ code.js
+   └─ ui.html
+```
+
+版本目录中的 `manifest.json` 使用相对路径 `dist/code.js` 和 `dist/ui.html`，可以直接复制整个版本目录进行安装或交付。
 
 发布到 Figma Community 前，请使用 Figma 创建插件时分配的正式插件 ID 替换 `manifest.json` 中的本地 ID。
