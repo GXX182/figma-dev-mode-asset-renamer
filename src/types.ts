@@ -178,6 +178,9 @@ export type PluginToUiMessage =
   | { type: "export-started"; total: number }
   | { type: "export-progress"; completed: number; total: number; currentName: string }
   | { type: "export-complete"; files: ExportedFile[]; failedNames: string[] }
+  | { type: "single-export-started"; nodeId: string; name: string }
+  | { type: "single-export-complete"; nodeId: string; file: ExportedFile }
+  | { type: "single-export-error"; nodeId: string; message: string }
   | { type: "error"; message: string };
 
 export type UiToPluginMessage =
@@ -197,4 +200,5 @@ export type UiToPluginMessage =
   | { type: "check-ai-bridge" }
   | { type: "analyze-selection" }
   | { type: "cancel-ai-analysis" }
+  | { type: "export-one"; nodeId: string; config: ExportConfig; semanticNames?: Record<string, string> }
   | { type: "export"; config: ExportConfig; semanticNames?: Record<string, string> };

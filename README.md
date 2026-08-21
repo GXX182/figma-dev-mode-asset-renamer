@@ -6,6 +6,7 @@
 
 - 支持 PNG、JPG、SVG、PDF。
 - 支持 1×、2×、3×、4× 位图导出。
+- 文件名预览中的每个文件都可以单独下载，也可以继续使用底部按钮统一打包为 ZIP。
 - 支持 AI 根据设计图生成语义文件名，结果可预览、清除和重新分析。
 - AI 分析会显示图片准备、当前批次、等待时间和已命名数量；每批结果即时写入预览，并支持中途取消和保留成功结果。
 - 支持 Gemini 原生、OpenAI 兼容（Chat Completions/Responses）和 Anthropic 兼容接口，并可根据 Base URL 自动识别协议。
@@ -57,7 +58,7 @@ AI 分析成功后，语义名称会自动替代 `{name}` 的输入值，因此�
 日常开发请先运行 `npm run watch`，再从项目根目录导入 `manifest.json`。执行 `npm run build` 后，交付版本应导入版本目录中的清单，例如：
 
 ```text
-dist/dev-mode-asset-renamer-local_1.6.0/
+dist/dev-mode-asset-renamer-local_1.7.0/
 ├─ manifest.json
 ├─ dist/
 │  ├─ code.js

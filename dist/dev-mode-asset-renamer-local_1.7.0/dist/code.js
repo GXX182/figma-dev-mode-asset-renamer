@@ -1038,6 +1038,36 @@ ${assets}`
     }
     postMessage({ type: "export-complete", files, failedNames });
   }
+  async function exportOne(nodeId, config, semanticNames = {}) {
+    const validationError = validateConfig(config);
+    if (validationError) {
+      postMessage({ type: "single-export-error", nodeId, message: validationError });
+      return;
+    }
+    const nodes = figma.currentPage.selection.filter(isExportable);
+    const nodeIndex = nodes.findIndex((node2) => node2.id === nodeId);
+    if (nodeIndex < 0) {
+      postMessage({ type: "single-export-error", nodeId, message: "\u8FD9\u4E2A\u56FE\u5C42\u5DF2\u4E0D\u5728\u5F53\u524D\u9009\u62E9\u4E2D\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u540E\u518D\u4E0B\u8F7D" });
+      return;
+    }
+    const names = buildDownloadNames(
+      nodes.map(describeNode),
+      config,
+      config.format,
+      config.scale,
+      /* @__PURE__ */ new Date(),
+      semanticNames
+    );
+    const node = nodes[nodeIndex];
+    const outputName = names[nodeIndex];
+    postMessage({ type: "single-export-started", nodeId, name: outputName });
+    try {
+      const bytes = await node.exportAsync(exportSettings(config.format, config.scale));
+      postMessage({ type: "single-export-complete", nodeId, file: { name: outputName, bytes } });
+    } catch {
+      postMessage({ type: "single-export-error", nodeId, message: `\u65E0\u6CD5\u5BFC\u51FA ${node.name}\uFF0C\u8BF7\u68C0\u67E5\u56FE\u5C42\u6743\u9650\u6216\u5BFC\u51FA\u683C\u5F0F` });
+    }
+  }
   function bytesToBase64(bytes) {
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let output = "";
@@ -1303,6 +1333,10 @@ ${assets}`
       }
       if (message.type === "export") {
         void exportSelection(message.config, message.semanticNames);
+        return;
+      }
+      if (message.type === "export-one") {
+        void exportOne(message.nodeId, message.config, message.semanticNames);
       }
     };
     figma.on("selectionchange", postSelection);

@@ -410,6 +410,43 @@ async function exportSelection(config: ExportConfig, semanticNames: Record<strin
   postMessage({ type: "export-complete", files, failedNames });
 }
 
+async function exportOne(
+  nodeId: string,
+  config: ExportConfig,
+  semanticNames: Record<string, string> = {}
+): Promise<void> {
+  const validationError = validateConfig(config);
+  if (validationError) {
+    postMessage({ type: "single-export-error", nodeId, message: validationError });
+    return;
+  }
+
+  const nodes = figma.currentPage.selection.filter(isExportable);
+  const nodeIndex = nodes.findIndex((node) => node.id === nodeId);
+  if (nodeIndex < 0) {
+    postMessage({ type: "single-export-error", nodeId, message: "这个图层已不在当前选择中，请重新选择后再下载" });
+    return;
+  }
+
+  const names = buildDownloadNames(
+    nodes.map(describeNode),
+    config,
+    config.format,
+    config.scale,
+    new Date(),
+    semanticNames
+  );
+  const node = nodes[nodeIndex];
+  const outputName = names[nodeIndex];
+  postMessage({ type: "single-export-started", nodeId, name: outputName });
+  try {
+    const bytes = await node.exportAsync(exportSettings(config.format, config.scale));
+    postMessage({ type: "single-export-complete", nodeId, file: { name: outputName, bytes } });
+  } catch {
+    postMessage({ type: "single-export-error", nodeId, message: `无法导出 ${node.name}，请检查图层权限或导出格式` });
+  }
+}
+
 function bytesToBase64(bytes: Uint8Array): string {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   let output = "";
@@ -689,6 +726,10 @@ if (figma.editorType !== "dev") {
     }
     if (message.type === "export") {
       void exportSelection(message.config, message.semanticNames);
+      return;
+    }
+    if (message.type === "export-one") {
+      void exportOne(message.nodeId, message.config, message.semanticNames);
     }
   };
 

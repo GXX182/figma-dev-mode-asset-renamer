@@ -58,6 +58,7 @@ const state: {
   items: ExportableNodeInfo[];
   ignoredCount: number;
   busy: boolean;
+  singleExportNodeId: string | null;
   config: ExportConfig;
   aiSettings: AiSettingsView | null;
   aiBusy: boolean;
@@ -70,6 +71,7 @@ const state: {
   items: [],
   ignoredCount: 0,
   busy: false,
+  singleExportNodeId: null,
   config: { ...defaultConfig },
   aiSettings: null,
   aiBusy: false,
@@ -595,7 +597,33 @@ function renderPreview(): void {
       renamed.append(badge);
     }
 
-    row.append(original, arrow, renamed);
+    const nodeId = state.items[index].id;
+    const downloading = state.singleExportNodeId === nodeId;
+    const downloadButton = document.createElement("button");
+    downloadButton.type = "button";
+    downloadButton.className = "preview-download-button";
+    downloadButton.classList.toggle("is-loading", downloading);
+    downloadButton.disabled = state.busy || state.aiBusy || Boolean(error);
+    downloadButton.title = downloading ? `正在下载 ${names[index]}` : `单独下载 ${names[index]}`;
+    downloadButton.setAttribute("aria-label", downloadButton.title);
+    downloadButton.innerHTML = downloading
+      ? '<svg class="preview-download-spinner" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6.5"></circle></svg>'
+      : '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 3.25v8.5m0 0 3-3m-3 3-3-3M4.25 15.75h11.5"></path></svg>';
+    downloadButton.addEventListener("click", () => {
+      if (state.busy || state.aiBusy || namingError()) return;
+      state.busy = true;
+      state.singleExportNodeId = nodeId;
+      render();
+      setStatus(`正在单独导出 ${names[index]}…`);
+      postMessage({
+        type: "export-one",
+        nodeId,
+        config: state.config,
+        ...(Object.keys(state.aiSuggestions).length ? { semanticNames: state.aiSuggestions } : {})
+      });
+    });
+
+    row.append(original, arrow, renamed, downloadButton);
     previewList.append(row);
   }
 
@@ -618,7 +646,7 @@ function renderActions(): void {
   const error = namingError();
   exportButton.disabled = state.busy || state.aiBusy || state.items.length === 0 || Boolean(error);
   exportButton.textContent = state.busy
-    ? "正在准备下载…"
+    ? state.singleExportNodeId ? "正在下载单个文件…" : "正在准备下载…"
     : state.aiBusy
       ? "AI 分析中…"
     : state.items.length > 0
@@ -636,6 +664,9 @@ function renderActions(): void {
   }
   tokenList.querySelectorAll<HTMLButtonElement>("button").forEach((button) => {
     button.disabled = state.busy;
+  });
+  previewList.querySelectorAll<HTMLButtonElement>(".preview-download-button").forEach((button) => {
+    button.disabled = state.busy || state.aiBusy || Boolean(error);
   });
   renderAiMainControls();
 }
@@ -713,6 +744,29 @@ function downloadArchive(files: Array<{ name: string; bytes: Uint8Array }>): voi
   link.click();
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+function downloadFile(file: { name: string; bytes: Uint8Array }): void {
+  const exactBuffer = file.bytes.buffer.slice(
+    file.bytes.byteOffset,
+    file.bytes.byteOffset + file.bytes.byteLength
+  ) as ArrayBuffer;
+  const extension = file.name.split(".").pop()?.toLowerCase() || "";
+  const mimeTypes: Record<string, string> = {
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    svg: "image/svg+xml",
+    pdf: "application/pdf"
+  };
+  const url = URL.createObjectURL(new Blob([exactBuffer], { type: mimeTypes[extension] || "application/octet-stream" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = file.name;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
 function uniqueId(prefix: "provider" | "prompt" | "skill"): string {
@@ -1296,8 +1350,39 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
     return;
   }
 
+  if (message.type === "single-export-started") {
+    state.busy = true;
+    state.singleExportNodeId = message.nodeId;
+    render();
+    setStatus(`正在单独导出 ${message.name}…`);
+    return;
+  }
+
+  if (message.type === "single-export-complete") {
+    try {
+      downloadFile(message.file);
+      setStatus(`已下载 ${message.file.name}`, "success");
+    } catch (error) {
+      setStatus(`下载失败：${error instanceof Error ? error.message : String(error)}`, "error");
+    } finally {
+      state.busy = false;
+      state.singleExportNodeId = null;
+      render();
+    }
+    return;
+  }
+
+  if (message.type === "single-export-error") {
+    state.busy = false;
+    state.singleExportNodeId = null;
+    render();
+    setStatus(message.message, "error");
+    return;
+  }
+
   if (message.type === "export-started") {
     state.busy = true;
+    state.singleExportNodeId = null;
     renderActions();
     setStatus(`正在导出 0 / ${message.total}…`);
     return;
@@ -1319,6 +1404,7 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
       setStatus(`下载失败：${error instanceof Error ? error.message : String(error)}`, "error");
     } finally {
       state.busy = false;
+      state.singleExportNodeId = null;
       renderActions();
     }
     return;
@@ -1326,6 +1412,7 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
 
   if (message.type === "error") {
     state.busy = false;
+    state.singleExportNodeId = null;
     renderActions();
     setStatus(message.message, "error");
   }
