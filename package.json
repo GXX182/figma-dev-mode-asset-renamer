@@ -5,11 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "server": "node server/start-server.mjs",
-    "server:foreground": "node server/server.mjs",
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/test.mjs && node tests/server.test.mjs",
+    "test": "node scripts/test.mjs",
     "check": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {

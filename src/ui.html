@@ -328,233 +328,6 @@
         min-height: 220px;
       }
 
-      .ai-section {
-        gap: 8px;
-        padding: 10px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: var(--surface);
-      }
-
-      .ai-section .grid-2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .ai-provider-summary {
-        min-height: 15px;
-      }
-
-      .preview-toolbar {
-        display: flex;
-        gap: 6px;
-      }
-
-      .ai-analyze-button {
-        display: flex;
-        min-height: 34px;
-        flex: 1 1 auto;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid color-mix(in srgb, var(--brand) 55%, var(--border));
-        border-radius: 7px;
-        background: color-mix(in srgb, var(--brand) 9%, var(--bg));
-        color: var(--brand);
-        cursor: pointer;
-        font-weight: 600;
-      }
-
-      .ai-analyze-button:hover:not(:disabled) {
-        background: color-mix(in srgb, var(--brand) 15%, var(--bg));
-      }
-
-      .ai-analyze-button.is-cancel {
-        border-color: color-mix(in srgb, var(--danger) 42%, var(--border));
-        background: color-mix(in srgb, var(--danger) 7%, var(--bg));
-        color: var(--danger);
-      }
-
-      .ai-analyze-button.is-cancel:hover:not(:disabled) {
-        background: color-mix(in srgb, var(--danger) 12%, var(--bg));
-      }
-
-      .ai-progress {
-        display: grid;
-        gap: 8px;
-        padding: 10px;
-        border: 1px solid color-mix(in srgb, var(--brand) 32%, var(--border));
-        border-radius: var(--radius);
-        background: color-mix(in srgb, var(--brand) 5%, var(--surface));
-      }
-
-      .ai-progress[hidden] {
-        display: none;
-      }
-
-      .ai-progress[data-phase="complete"] {
-        border-color: color-mix(in srgb, var(--success) 35%, var(--border));
-        background: color-mix(in srgb, var(--success) 5%, var(--surface));
-      }
-
-      .ai-progress[data-phase="error"] {
-        border-color: color-mix(in srgb, var(--danger) 32%, var(--border));
-        background: color-mix(in srgb, var(--danger) 4%, var(--surface));
-      }
-
-      .ai-progress[data-phase="batch-failed"] {
-        border-color: color-mix(in srgb, var(--warning) 34%, var(--border));
-        background: color-mix(in srgb, var(--warning) 5%, var(--surface));
-      }
-
-      .ai-progress[data-phase="cancelled"] {
-        border-color: var(--border);
-        background: var(--surface);
-      }
-
-      .ai-progress-heading,
-      .ai-progress-meta {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-      }
-
-      .ai-progress-title-wrap {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        gap: 7px;
-      }
-
-      .ai-progress-pulse {
-        position: relative;
-        width: 7px;
-        height: 7px;
-        flex: 0 0 auto;
-        border-radius: 50%;
-        background: var(--brand);
-      }
-
-      .ai-progress[data-phase="preparing"] .ai-progress-pulse,
-      .ai-progress[data-phase="requesting"] .ai-progress-pulse,
-      .ai-progress[data-phase="starting"] .ai-progress-pulse,
-      .ai-progress[data-phase="cancelling"] .ai-progress-pulse {
-        animation: ai-pulse 1.4s ease-out infinite;
-      }
-
-      .ai-progress[data-phase="complete"] .ai-progress-pulse {
-        background: var(--success);
-      }
-
-      .ai-progress[data-phase="error"] .ai-progress-pulse {
-        background: var(--danger);
-      }
-
-      .ai-progress[data-phase="batch-failed"] .ai-progress-pulse {
-        background: var(--warning);
-      }
-
-      .ai-progress[data-phase="cancelled"] .ai-progress-pulse {
-        background: var(--muted);
-      }
-
-      .ai-progress-title {
-        overflow: hidden;
-        font-size: 11px;
-        line-height: 16px;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .ai-progress-batch,
-      .ai-progress-count {
-        flex: 0 0 auto;
-        color: var(--muted);
-        font-size: 10px;
-      }
-
-      .ai-progress-detail {
-        min-height: 15px;
-        overflow: hidden;
-        color: var(--muted);
-        font-size: 10px;
-        line-height: 15px;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .ai-progress-track {
-        position: relative;
-        height: 4px;
-        overflow: hidden;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--brand) 13%, var(--border));
-      }
-
-      .ai-progress-value {
-        width: 0;
-        height: 100%;
-        border-radius: inherit;
-        background: var(--brand);
-        transition: width 240ms ease;
-      }
-
-      .ai-progress[data-phase="complete"] .ai-progress-value {
-        background: var(--success);
-      }
-
-      .ai-progress-track.is-waiting::after {
-        position: absolute;
-        width: 34%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 72%, white), transparent);
-        content: "";
-        inset: 0 auto 0 -34%;
-        animation: ai-progress-scan 1.6s ease-in-out infinite;
-      }
-
-      .ai-progress-diagnostic {
-        padding: 0;
-        border: 0;
-        background: transparent;
-        color: var(--brand);
-        cursor: pointer;
-        font-size: 10px;
-      }
-
-      @keyframes ai-pulse {
-        0% {
-          box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 34%, transparent);
-        }
-        70%,
-        100% {
-          box-shadow: 0 0 0 5px transparent;
-        }
-      }
-
-      @keyframes ai-progress-scan {
-        from {
-          left: -34%;
-        }
-        to {
-          left: 100%;
-        }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .ai-progress-pulse,
-        .ai-progress-track.is-waiting::after {
-          animation: none !important;
-        }
-      }
-
-      .ai-badge {
-        margin-left: 5px;
-        color: var(--brand);
-        font-size: 9px;
-        font-weight: 600;
-      }
-
       .preview-list {
         display: flex;
         min-height: 120px;
@@ -567,16 +340,89 @@
       }
 
       .preview-row {
-        display: grid;
-        grid-template-columns: minmax(0, 0.72fr) 18px minmax(0, 1.28fr) 26px;
-        align-items: center;
-        min-height: 34px;
-        padding: 5px 5px 5px 8px;
+        flex: 0 0 auto;
         border-bottom: 1px solid var(--border);
       }
 
       .preview-row:last-child {
         border-bottom: 0;
+      }
+
+      .preview-row-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 26px;
+        align-items: center;
+        min-height: 46px;
+        gap: 8px;
+        padding: 6px 5px 6px 7px;
+      }
+
+      .preview-file-meta {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .preview-toggle {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 5px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .preview-toggle:hover {
+        color: var(--brand);
+      }
+
+      .preview-toggle-icon {
+        display: grid;
+        flex: 0 0 16px;
+        width: 16px;
+        height: 16px;
+        place-items: center;
+        color: var(--muted);
+        transition: transform 160ms ease, color 160ms ease;
+      }
+
+      .preview-toggle:hover .preview-toggle-icon {
+        color: currentColor;
+      }
+
+      .preview-toggle-icon svg {
+        width: 13px;
+        height: 13px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.8;
+      }
+
+      .preview-row.is-collapsed .preview-toggle-icon {
+        transform: rotate(-90deg);
+      }
+
+      .preview-source {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 4px;
+        padding-left: 21px;
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 14px;
+      }
+
+      .preview-source-label {
+        flex: 0 0 auto;
+        color: color-mix(in srgb, var(--muted) 78%, transparent);
       }
 
       .preview-original,
@@ -593,13 +439,51 @@
       }
 
       .preview-renamed {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         font-weight: 500;
       }
 
-      .preview-renamed.is-editable {
-        cursor: text;
-        text-decoration: underline dotted color-mix(in srgb, var(--brand) 48%, transparent);
-        text-underline-offset: 3px;
+      .preview-image-wrap {
+        display: grid;
+        min-height: 112px;
+        margin: 0 7px 7px;
+        padding: 10px;
+        place-items: center;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background-color: color-mix(in srgb, var(--surface) 72%, var(--bg));
+        background-image: linear-gradient(45deg, color-mix(in srgb, var(--border) 38%, transparent) 25%, transparent 25%),
+          linear-gradient(-45deg, color-mix(in srgb, var(--border) 38%, transparent) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, color-mix(in srgb, var(--border) 38%, transparent) 75%),
+          linear-gradient(-45deg, transparent 75%, color-mix(in srgb, var(--border) 38%, transparent) 75%);
+        background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+        background-size: 16px 16px;
+      }
+
+      .preview-image {
+        display: block;
+        width: auto;
+        max-width: 100%;
+        height: auto;
+        max-height: 190px;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--text) 14%, transparent);
+        object-fit: contain;
+      }
+
+      .preview-placeholder {
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 15px;
+        text-align: center;
+      }
+
+      .preview-placeholder.is-error {
+        color: var(--danger);
       }
 
       .preview-download-button {
@@ -652,6 +536,12 @@
       @keyframes preview-download-spin {
         to {
           transform: rotate(360deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .preview-toggle-icon {
+          transition: none;
         }
       }
 
@@ -721,251 +611,8 @@
         background: var(--brand-hover);
       }
 
-      .settings-view {
-        position: fixed;
-        z-index: 20;
-        inset: 0;
-        display: flex;
-        flex-direction: column;
-        background: var(--bg);
-      }
-
-      .settings-view[hidden],
       [hidden] {
         display: none !important;
-      }
-
-      .settings-header {
-        display: flex;
-        min-height: 48px;
-        align-items: center;
-        gap: 8px;
-        padding: 9px 12px;
-        border-bottom: 1px solid var(--border);
-      }
-
-      .settings-header h2 {
-        flex: 1 1 auto;
-        font-size: 13px;
-      }
-
-      .settings-tabs {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 3px;
-        margin: 10px 12px 0;
-        padding: 3px;
-        border-radius: 7px;
-        background: var(--surface);
-      }
-
-      .settings-tab {
-        min-height: 29px;
-        border: 0;
-        border-radius: 5px;
-        background: transparent;
-        color: var(--muted);
-        cursor: pointer;
-      }
-
-      .settings-tab.is-active {
-        background: var(--bg);
-        color: var(--text);
-        box-shadow: 0 1px 3px color-mix(in srgb, var(--text) 12%, transparent);
-        font-weight: 600;
-      }
-
-      .settings-content {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow: auto;
-        padding: 12px;
-      }
-
-      .settings-panel {
-        display: flex;
-        max-width: 680px;
-        flex-direction: column;
-        gap: 12px;
-        margin: 0 auto;
-      }
-
-      .settings-actions,
-      .library-toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-
-      .secondary-button {
-        min-height: 32px;
-        padding: 0 10px;
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        background: var(--bg);
-        color: var(--text);
-        cursor: pointer;
-      }
-
-      .secondary-button:hover:not(:disabled) {
-        border-color: var(--brand);
-        color: var(--brand);
-      }
-
-      .settings-save {
-        min-height: 34px;
-        padding: 0 14px;
-        border: 0;
-        border-radius: 7px;
-        background: var(--brand);
-        color: var(--brand-text);
-        cursor: pointer;
-        font-weight: 600;
-      }
-
-      .connection-result {
-        padding: 8px 10px;
-        border-radius: 6px;
-        background: var(--surface);
-        color: var(--muted);
-        line-height: 17px;
-      }
-
-      .bridge-status-card {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 8px;
-        min-height: 38px;
-        padding: 7px 8px 7px 10px;
-        border: 1px solid var(--border);
-        border-radius: 7px;
-        background: var(--surface);
-      }
-
-      .bridge-status-dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--muted);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted) 13%, transparent);
-      }
-
-      .bridge-status-card[data-state="online"] .bridge-status-dot {
-        background: var(--success);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 14%, transparent);
-      }
-
-      .bridge-status-card[data-state="offline"] .bridge-status-dot {
-        background: var(--danger);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 12%, transparent);
-      }
-
-      .bridge-status-copy {
-        min-width: 0;
-      }
-
-      .bridge-status-copy strong,
-      .bridge-status-copy span {
-        display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .bridge-status-copy strong {
-        font-size: 12px;
-        line-height: 16px;
-      }
-
-      .bridge-status-copy span {
-        color: var(--muted);
-        font-size: 10px;
-        line-height: 14px;
-      }
-
-      .bridge-refresh {
-        min-height: 26px;
-        padding: 0 8px;
-      }
-
-      .request-diagnostic {
-        overflow: hidden;
-        border: 1px solid var(--border);
-        border-radius: 7px;
-        background: var(--bg);
-      }
-
-      .request-diagnostic summary {
-        display: flex;
-        min-height: 34px;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 0 10px;
-        cursor: pointer;
-        font-weight: 600;
-        list-style: none;
-      }
-
-      .request-diagnostic summary::-webkit-details-marker {
-        display: none;
-      }
-
-      .diagnostic-state {
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 400;
-      }
-
-      .diagnostic-body {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 10px;
-        border-top: 1px solid var(--border);
-      }
-
-      .diagnostic-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-        margin: 0;
-      }
-
-      .diagnostic-grid div,
-      .diagnostic-block {
-        min-width: 0;
-      }
-
-      .diagnostic-grid dt,
-      .diagnostic-block > span {
-        display: block;
-        margin-bottom: 4px;
-        color: var(--muted);
-        font-size: 11px;
-      }
-
-      .diagnostic-grid dd {
-        margin: 0;
-        font-weight: 600;
-      }
-
-      .diagnostic-block code,
-      .diagnostic-block pre {
-        display: block;
-        max-height: 128px;
-        margin: 0;
-        padding: 8px;
-        overflow: auto;
-        border-radius: 5px;
-        background: var(--surface);
-        color: var(--text);
-        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-        font-size: 11px;
-        line-height: 16px;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
       }
 
       @media (min-width: 560px) {
@@ -1058,53 +705,10 @@
         </section>
 
         <section class="preview-panel">
-          <section class="section ai-section">
-            <div class="section-heading">
-              <h2>AI 语义命名</h2>
-              <button class="icon-button" id="ai-settings-button" type="button" title="AI 设置" aria-label="打开 AI 设置">⚙</button>
-            </div>
-            <div class="grid-2">
-              <div class="field">
-                <label for="ai-service-select">服务</label>
-                <select id="ai-service-select">
-                  <option value="">请先配置服务</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="ai-strategy-select">命名策略</label>
-                <select id="ai-strategy-select">
-                  <option value="">通用素材命名</option>
-                </select>
-              </div>
-            </div>
-            <p class="helper ai-provider-summary" id="ai-provider-summary">尚未配置 AI 服务</p>
-          </section>
-
           <div class="section-heading">
             <h2>文件名预览</h2>
             <span class="helper" id="preview-summary">0 个文件</span>
           </div>
-          <div class="preview-toolbar">
-            <button class="ai-analyze-button" id="ai-analyze-button" type="button" hidden>✦ AI 分析当前选择</button>
-            <button class="icon-button" id="ai-clear-button" type="button" title="清除 AI 结果" aria-label="清除 AI 结果" hidden>↺</button>
-          </div>
-          <section class="ai-progress" id="ai-progress" data-phase="starting" role="status" aria-live="polite" hidden>
-            <div class="ai-progress-heading">
-              <div class="ai-progress-title-wrap">
-                <span class="ai-progress-pulse" aria-hidden="true"></span>
-                <strong class="ai-progress-title" id="ai-progress-title">正在启动 AI 分析</strong>
-              </div>
-              <span class="ai-progress-batch" id="ai-progress-batch"></span>
-            </div>
-            <p class="ai-progress-detail" id="ai-progress-detail"></p>
-            <div class="ai-progress-track" id="ai-progress-track" role="progressbar" aria-label="AI 已完成命名数量" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
-              <div class="ai-progress-value" id="ai-progress-value"></div>
-            </div>
-            <div class="ai-progress-meta">
-              <span class="ai-progress-count" id="ai-progress-count">已命名 0 / 0</span>
-              <button class="ai-progress-diagnostic" id="ai-progress-diagnostic" type="button" hidden>查看错误详情</button>
-            </div>
-          </section>
           <div class="preview-list" id="preview-list"></div>
         </section>
       </div>
@@ -1114,166 +718,6 @@
         <button class="primary-button" id="export-button" type="button" disabled>打包下载</button>
       </footer>
     </main>
-
-    <section class="settings-view" id="ai-settings-view" aria-label="AI 设置" hidden>
-      <header class="settings-header">
-        <button class="icon-button" id="ai-settings-back" type="button" aria-label="返回">←</button>
-        <h2>AI 设置</h2>
-      </header>
-
-      <nav class="settings-tabs" aria-label="AI 设置分类">
-        <button class="settings-tab is-active" type="button" data-settings-tab="connection">服务配置</button>
-        <button class="settings-tab" type="button" data-settings-tab="prompts">提示词模板</button>
-        <button class="settings-tab" type="button" data-settings-tab="skills">Skill</button>
-      </nav>
-
-      <div class="settings-content">
-        <section class="settings-panel" data-settings-panel="connection">
-          <div class="field">
-            <label for="ai-provider-select">AI 服务</label>
-            <div class="grid-2">
-              <select id="ai-provider-select"></select>
-              <div class="settings-actions">
-                <button class="secondary-button" id="ai-provider-add" type="button">新增</button>
-                <button class="secondary-button" id="ai-provider-delete" type="button">删除</button>
-              </div>
-            </div>
-          </div>
-          <div class="field">
-            <label for="ai-provider-name">服务名称</label>
-            <input id="ai-provider-name" type="text" maxlength="80" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="ai-api-format">接口格式</label>
-            <select id="ai-api-format">
-              <option value="auto">自动识别（推荐）</option>
-              <option value="gemini-native">Gemini 原生</option>
-              <option value="openai-compatible">OpenAI 兼容</option>
-              <option value="anthropic-compatible">Anthropic 兼容</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="ai-request-mode">请求方式</label>
-            <select id="ai-request-mode">
-              <option value="auto">自动（优先本地服务）</option>
-              <option value="bridge">仅本地服务</option>
-              <option value="direct">直接连接</option>
-            </select>
-            <p class="helper">自动模式检测到 127.0.0.1:7879 后，模型和图片分析都会经本地服务转发。</p>
-          </div>
-          <div class="bridge-status-card" id="ai-bridge-status" data-state="checking">
-            <span class="bridge-status-dot" aria-hidden="true"></span>
-            <div class="bridge-status-copy">
-              <strong id="ai-bridge-status-text">正在检测本地服务…</strong>
-              <span>http://127.0.0.1:7879</span>
-            </div>
-            <button class="secondary-button bridge-refresh" id="ai-bridge-refresh" type="button">检测</button>
-          </div>
-          <div class="field">
-            <label for="ai-base-url">Base URL</label>
-            <input id="ai-base-url" type="text" autocomplete="off" spellcheck="false" placeholder="https://api.example.com/v1" />
-          </div>
-          <div class="field">
-            <label for="ai-api-key">API Key</label>
-            <input id="ai-api-key" type="password" autocomplete="off" placeholder="输入新 Key；留空则保留已保存的 Key" />
-            <p class="helper" id="ai-key-helper">完整 Key 保存后不会重新显示。</p>
-          </div>
-          <div class="connection-result" id="ai-connection-result">填写连接信息后获取模型。</div>
-          <details class="request-diagnostic" id="ai-request-diagnostic" hidden>
-            <summary>
-              <span>请求诊断</span>
-              <span class="diagnostic-state" id="ai-diagnostic-state">未收到响应</span>
-            </summary>
-            <div class="diagnostic-body">
-              <dl class="diagnostic-grid">
-                <div>
-                  <dt>阶段</dt>
-                  <dd id="ai-diagnostic-phase">—</dd>
-                </div>
-                <div>
-                  <dt>HTTP 状态</dt>
-                  <dd id="ai-diagnostic-status">—</dd>
-                </div>
-                <div>
-                  <dt>请求通道</dt>
-                  <dd id="ai-diagnostic-transport">—</dd>
-                </div>
-              </dl>
-              <div class="diagnostic-block">
-                <span>请求</span>
-                <code id="ai-diagnostic-request">—</code>
-              </div>
-              <div class="diagnostic-block">
-                <span>错误</span>
-                <pre id="ai-diagnostic-error">—</pre>
-              </div>
-              <div class="diagnostic-block">
-                <span>响应摘要</span>
-                <pre id="ai-diagnostic-response">—</pre>
-              </div>
-              <p class="helper" id="ai-diagnostic-cause"></p>
-              <div class="settings-actions">
-                <button class="secondary-button" id="ai-copy-diagnostic" type="button">复制诊断信息</button>
-              </div>
-            </div>
-          </details>
-          <div class="settings-actions">
-            <button class="secondary-button" id="ai-fetch-models" type="button">测试并获取模型</button>
-          </div>
-          <div class="field">
-            <label for="ai-settings-model">视觉模型</label>
-            <select id="ai-settings-model">
-              <option value="">请先获取模型</option>
-            </select>
-            <input id="ai-manual-model" type="text" autocomplete="off" placeholder="模型列表不可用时，可手动填写模型 ID" />
-          </div>
-          <button class="settings-save" id="ai-save-connection" type="button">保存服务配置</button>
-        </section>
-
-        <section class="settings-panel" data-settings-panel="prompts" hidden>
-          <div class="field">
-            <label for="ai-prompt-library">提示词模板</label>
-            <select id="ai-prompt-library"></select>
-          </div>
-          <div class="library-toolbar">
-            <button class="secondary-button" id="ai-prompt-new" type="button">新建</button>
-            <button class="secondary-button" id="ai-prompt-import" type="button">导入</button>
-            <button class="secondary-button" id="ai-prompt-delete" type="button">删除</button>
-            <input id="ai-prompt-file" type="file" accept=".txt,.md,.json,text/plain,application/json" hidden />
-          </div>
-          <div class="field">
-            <label for="ai-prompt-name">名称</label>
-            <input id="ai-prompt-name" type="text" maxlength="80" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="ai-prompt-content">提示词内容</label>
-            <textarea id="ai-prompt-content" maxlength="20000" spellcheck="false"></textarea>
-          </div>
-          <button class="settings-save" id="ai-save-prompt" type="button">保存提示词</button>
-        </section>
-
-        <section class="settings-panel" data-settings-panel="skills" hidden>
-          <div class="field">
-            <label for="ai-skill-library">Skill</label>
-            <select id="ai-skill-library"></select>
-          </div>
-          <div class="library-toolbar">
-            <button class="secondary-button" id="ai-skill-upload" type="button">上传 .md / .txt</button>
-            <button class="secondary-button" id="ai-skill-delete" type="button">删除</button>
-            <input id="ai-skill-file" type="file" accept=".md,.txt,text/markdown,text/plain" hidden />
-          </div>
-          <div class="field">
-            <label for="ai-skill-name">名称</label>
-            <input id="ai-skill-name" type="text" maxlength="100" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="ai-skill-content">规则内容</label>
-            <textarea id="ai-skill-content" maxlength="64000" spellcheck="false"></textarea>
-          </div>
-          <button class="settings-save" id="ai-save-skill" type="button">保存 Skill</button>
-        </section>
-      </div>
-    </section>
     <script src="./ui.js"></script>
   </body>
 </html>

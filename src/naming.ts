@@ -11,7 +11,6 @@ export const DEFAULT_NAMING_CONFIG: NamingConfig = {
 
 export const SUPPORTED_TOKENS = [
   "name",
-  "ai",
   "index",
   "parent",
   "page",
@@ -100,8 +99,7 @@ export function buildDownloadNames(
   config: NamingConfig,
   format: string,
   scale: number,
-  now = new Date(),
-  semanticNames: Readonly<Record<string, string>> = {}
+  now = new Date()
 ): string[] {
   const template = config.template.trim() || DEFAULT_NAMING_CONFIG.template;
   const startIndex = Number.isFinite(config.startIndex) ? Math.max(0, Math.floor(config.startIndex)) : 1;
@@ -113,11 +111,8 @@ export function buildDownloadNames(
 
   return items.map((item, position) => {
     const index = String(startIndex + position).padStart(padding, "0");
-    const semanticName = semanticNames[item.id]?.trim();
-    const sourceName = semanticName || item.name;
     const values: Record<string, string> = {
-      name: stripKnownExtension(sourceName) || "asset",
-      ai: stripKnownExtension(semanticName || item.name) || "asset",
+      name: stripKnownExtension(item.name) || "asset",
       index,
       parent: item.parentName || "root",
       page: item.pageName || "page",

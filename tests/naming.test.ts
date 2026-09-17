@@ -54,14 +54,4 @@ assert(sanitizeWindowsStem("CON") === "_CON", "Windows 保留名未处理");
 assert(sanitizeWindowsStem('a<b>:c/"d"?* ') === "a-b-c-d-", "Windows 非法字符未处理");
 assert(findUnknownTokens("{name}-{foo}-{FOO}").join(",") === "foo", "未知变量检测失败");
 
-const semantic = buildDownloadNames(
-  [node("background")],
-  { ...baseConfig, template: "{name}-{index}" },
-  "PNG",
-  2,
-  new Date(2026, 7, 21),
-  { background: "membership-coupon-background" }
-);
-assert(semantic[0] === "membership-coupon-background-01.png", `AI 语义名称未进入模板：${semantic[0]}`);
-
 console.log("命名规则测试通过");

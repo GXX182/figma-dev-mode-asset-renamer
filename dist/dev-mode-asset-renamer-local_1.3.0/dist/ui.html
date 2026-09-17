@@ -328,233 +328,6 @@
         min-height: 220px;
       }
 
-      .ai-section {
-        gap: 8px;
-        padding: 10px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: var(--surface);
-      }
-
-      .ai-section .grid-2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .ai-provider-summary {
-        min-height: 15px;
-      }
-
-      .preview-toolbar {
-        display: flex;
-        gap: 6px;
-      }
-
-      .ai-analyze-button {
-        display: flex;
-        min-height: 34px;
-        flex: 1 1 auto;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid color-mix(in srgb, var(--brand) 55%, var(--border));
-        border-radius: 7px;
-        background: color-mix(in srgb, var(--brand) 9%, var(--bg));
-        color: var(--brand);
-        cursor: pointer;
-        font-weight: 600;
-      }
-
-      .ai-analyze-button:hover:not(:disabled) {
-        background: color-mix(in srgb, var(--brand) 15%, var(--bg));
-      }
-
-      .ai-analyze-button.is-cancel {
-        border-color: color-mix(in srgb, var(--danger) 42%, var(--border));
-        background: color-mix(in srgb, var(--danger) 7%, var(--bg));
-        color: var(--danger);
-      }
-
-      .ai-analyze-button.is-cancel:hover:not(:disabled) {
-        background: color-mix(in srgb, var(--danger) 12%, var(--bg));
-      }
-
-      .ai-progress {
-        display: grid;
-        gap: 8px;
-        padding: 10px;
-        border: 1px solid color-mix(in srgb, var(--brand) 32%, var(--border));
-        border-radius: var(--radius);
-        background: color-mix(in srgb, var(--brand) 5%, var(--surface));
-      }
-
-      .ai-progress[hidden] {
-        display: none;
-      }
-
-      .ai-progress[data-phase="complete"] {
-        border-color: color-mix(in srgb, var(--success) 35%, var(--border));
-        background: color-mix(in srgb, var(--success) 5%, var(--surface));
-      }
-
-      .ai-progress[data-phase="error"] {
-        border-color: color-mix(in srgb, var(--danger) 32%, var(--border));
-        background: color-mix(in srgb, var(--danger) 4%, var(--surface));
-      }
-
-      .ai-progress[data-phase="batch-failed"] {
-        border-color: color-mix(in srgb, var(--warning) 34%, var(--border));
-        background: color-mix(in srgb, var(--warning) 5%, var(--surface));
-      }
-
-      .ai-progress[data-phase="cancelled"] {
-        border-color: var(--border);
-        background: var(--surface);
-      }
-
-      .ai-progress-heading,
-      .ai-progress-meta {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-      }
-
-      .ai-progress-title-wrap {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        gap: 7px;
-      }
-
-      .ai-progress-pulse {
-        position: relative;
-        width: 7px;
-        height: 7px;
-        flex: 0 0 auto;
-        border-radius: 50%;
-        background: var(--brand);
-      }
-
-      .ai-progress[data-phase="preparing"] .ai-progress-pulse,
-      .ai-progress[data-phase="requesting"] .ai-progress-pulse,
-      .ai-progress[data-phase="starting"] .ai-progress-pulse,
-      .ai-progress[data-phase="cancelling"] .ai-progress-pulse {
-        animation: ai-pulse 1.4s ease-out infinite;
-      }
-
-      .ai-progress[data-phase="complete"] .ai-progress-pulse {
-        background: var(--success);
-      }
-
-      .ai-progress[data-phase="error"] .ai-progress-pulse {
-        background: var(--danger);
-      }
-
-      .ai-progress[data-phase="batch-failed"] .ai-progress-pulse {
-        background: var(--warning);
-      }
-
-      .ai-progress[data-phase="cancelled"] .ai-progress-pulse {
-        background: var(--muted);
-      }
-
-      .ai-progress-title {
-        overflow: hidden;
-        font-size: 11px;
-        line-height: 16px;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .ai-progress-batch,
-      .ai-progress-count {
-        flex: 0 0 auto;
-        color: var(--muted);
-        font-size: 10px;
-      }
-
-      .ai-progress-detail {
-        min-height: 15px;
-        overflow: hidden;
-        color: var(--muted);
-        font-size: 10px;
-        line-height: 15px;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .ai-progress-track {
-        position: relative;
-        height: 4px;
-        overflow: hidden;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--brand) 13%, var(--border));
-      }
-
-      .ai-progress-value {
-        width: 0;
-        height: 100%;
-        border-radius: inherit;
-        background: var(--brand);
-        transition: width 240ms ease;
-      }
-
-      .ai-progress[data-phase="complete"] .ai-progress-value {
-        background: var(--success);
-      }
-
-      .ai-progress-track.is-waiting::after {
-        position: absolute;
-        width: 34%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 72%, white), transparent);
-        content: "";
-        inset: 0 auto 0 -34%;
-        animation: ai-progress-scan 1.6s ease-in-out infinite;
-      }
-
-      .ai-progress-diagnostic {
-        padding: 0;
-        border: 0;
-        background: transparent;
-        color: var(--brand);
-        cursor: pointer;
-        font-size: 10px;
-      }
-
-      @keyframes ai-pulse {
-        0% {
-          box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 34%, transparent);
-        }
-        70%,
-        100% {
-          box-shadow: 0 0 0 5px transparent;
-        }
-      }
-
-      @keyframes ai-progress-scan {
-        from {
-          left: -34%;
-        }
-        to {
-          left: 100%;
-        }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .ai-progress-pulse,
-        .ai-progress-track.is-waiting::after {
-          animation: none !important;
-        }
-      }
-
-      .ai-badge {
-        margin-left: 5px;
-        color: var(--brand);
-        font-size: 9px;
-        font-weight: 600;
-      }
-
       .preview-list {
         display: flex;
         min-height: 120px;
@@ -567,16 +340,89 @@
       }
 
       .preview-row {
-        display: grid;
-        grid-template-columns: minmax(0, 0.72fr) 18px minmax(0, 1.28fr) 26px;
-        align-items: center;
-        min-height: 34px;
-        padding: 5px 5px 5px 8px;
+        flex: 0 0 auto;
         border-bottom: 1px solid var(--border);
       }
 
       .preview-row:last-child {
         border-bottom: 0;
+      }
+
+      .preview-row-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 26px;
+        align-items: center;
+        min-height: 46px;
+        gap: 8px;
+        padding: 6px 5px 6px 7px;
+      }
+
+      .preview-file-meta {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .preview-toggle {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 5px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .preview-toggle:hover {
+        color: var(--brand);
+      }
+
+      .preview-toggle-icon {
+        display: grid;
+        flex: 0 0 16px;
+        width: 16px;
+        height: 16px;
+        place-items: center;
+        color: var(--muted);
+        transition: transform 160ms ease, color 160ms ease;
+      }
+
+      .preview-toggle:hover .preview-toggle-icon {
+        color: currentColor;
+      }
+
+      .preview-toggle-icon svg {
+        width: 13px;
+        height: 13px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.8;
+      }
+
+      .preview-row.is-collapsed .preview-toggle-icon {
+        transform: rotate(-90deg);
+      }
+
+      .preview-source {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 4px;
+        padding-left: 21px;
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 14px;
+      }
+
+      .preview-source-label {
+        flex: 0 0 auto;
+        color: color-mix(in srgb, var(--muted) 78%, transparent);
       }
 
       .preview-original,
@@ -593,13 +439,51 @@
       }
 
       .preview-renamed {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         font-weight: 500;
       }
 
-      .preview-renamed.is-editable {
-        cursor: text;
-        text-decoration: underline dotted color-mix(in srgb, var(--brand) 48%, transparent);
-        text-underline-offset: 3px;
+      .preview-image-wrap {
+        display: grid;
+        min-height: 112px;
+        margin: 0 7px 7px;
+        padding: 10px;
+        place-items: center;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background-color: color-mix(in srgb, var(--surface) 72%, var(--bg));
+        background-image: linear-gradient(45deg, color-mix(in srgb, var(--border) 38%, transparent) 25%, transparent 25%),
+          linear-gradient(-45deg, color-mix(in srgb, var(--border) 38%, transparent) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, color-mix(in srgb, var(--border) 38%, transparent) 75%),
+          linear-gradient(-45deg, transparent 75%, color-mix(in srgb, var(--border) 38%, transparent) 75%);
+        background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+        background-size: 16px 16px;
+      }
+
+      .preview-image {
+        display: block;
+        width: auto;
+        max-width: 100%;
+        height: auto;
+        max-height: 190px;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--text) 14%, transparent);
+        object-fit: contain;
+      }
+
+      .preview-placeholder {
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 15px;
+        text-align: center;
+      }
+
+      .preview-placeholder.is-error {
+        color: var(--danger);
       }
 
       .preview-download-button {
@@ -652,6 +536,12 @@
       @keyframes preview-download-spin {
         to {
           transform: rotate(360deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .preview-toggle-icon {
+          transition: none;
         }
       }
 
@@ -721,251 +611,8 @@
         background: var(--brand-hover);
       }
 
-      .settings-view {
-        position: fixed;
-        z-index: 20;
-        inset: 0;
-        display: flex;
-        flex-direction: column;
-        background: var(--bg);
-      }
-
-      .settings-view[hidden],
       [hidden] {
         display: none !important;
-      }
-
-      .settings-header {
-        display: flex;
-        min-height: 48px;
-        align-items: center;
-        gap: 8px;
-        padding: 9px 12px;
-        border-bottom: 1px solid var(--border);
-      }
-
-      .settings-header h2 {
-        flex: 1 1 auto;
-        font-size: 13px;
-      }
-
-      .settings-tabs {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 3px;
-        margin: 10px 12px 0;
-        padding: 3px;
-        border-radius: 7px;
-        background: var(--surface);
-      }
-
-      .settings-tab {
-        min-height: 29px;
-        border: 0;
-        border-radius: 5px;
-        background: transparent;
-        color: var(--muted);
-        cursor: pointer;
-      }
-
-      .settings-tab.is-active {
-        background: var(--bg);
-        color: var(--text);
-        box-shadow: 0 1px 3px color-mix(in srgb, var(--text) 12%, transparent);
-        font-weight: 600;
-      }
-
-      .settings-content {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow: auto;
-        padding: 12px;
-      }
-
-      .settings-panel {
-        display: flex;
-        max-width: 680px;
-        flex-direction: column;
-        gap: 12px;
-        margin: 0 auto;
-      }
-
-      .settings-actions,
-      .library-toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-
-      .secondary-button {
-        min-height: 32px;
-        padding: 0 10px;
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        background: var(--bg);
-        color: var(--text);
-        cursor: pointer;
-      }
-
-      .secondary-button:hover:not(:disabled) {
-        border-color: var(--brand);
-        color: var(--brand);
-      }
-
-      .settings-save {
-        min-height: 34px;
-        padding: 0 14px;
-        border: 0;
-        border-radius: 7px;
-        background: var(--brand);
-        color: var(--brand-text);
-        cursor: pointer;
-        font-weight: 600;
-      }
-
-      .connection-result {
-        padding: 8px 10px;
-        border-radius: 6px;
-        background: var(--surface);
-        color: var(--muted);
-        line-height: 17px;
-      }
-
-      .bridge-status-card {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 8px;
-        min-height: 38px;
-        padding: 7px 8px 7px 10px;
-        border: 1px solid var(--border);
-        border-radius: 7px;
-        background: var(--surface);
-      }
-
-      .bridge-status-dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--muted);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted) 13%, transparent);
-      }
-
-      .bridge-status-card[data-state="online"] .bridge-status-dot {
-        background: var(--success);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 14%, transparent);
-      }
-
-      .bridge-status-card[data-state="offline"] .bridge-status-dot {
-        background: var(--danger);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 12%, transparent);
-      }
-
-      .bridge-status-copy {
-        min-width: 0;
-      }
-
-      .bridge-status-copy strong,
-      .bridge-status-copy span {
-        display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .bridge-status-copy strong {
-        font-size: 12px;
-        line-height: 16px;
-      }
-
-      .bridge-status-copy span {
-        color: var(--muted);
-        font-size: 10px;
-        line-height: 14px;
-      }
-
-      .bridge-refresh {
-        min-height: 26px;
-        padding: 0 8px;
-      }
-
-      .request-diagnostic {
-        overflow: hidden;
-        border: 1px solid var(--border);
-        border-radius: 7px;
-        background: var(--bg);
-      }
-
-      .request-diagnostic summary {
-        display: flex;
-        min-height: 34px;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 0 10px;
-        cursor: pointer;
-        font-weight: 600;
-        list-style: none;
-      }
-
-      .request-diagnostic summary::-webkit-details-marker {
-        display: none;
-      }
-
-      .diagnostic-state {
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 400;
-      }
-
-      .diagnostic-body {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 10px;
-        border-top: 1px solid var(--border);
-      }
-
-      .diagnostic-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-        margin: 0;
-      }
-
-      .diagnostic-grid div,
-      .diagnostic-block {
-        min-width: 0;
-      }
-
-      .diagnostic-grid dt,
-      .diagnostic-block > span {
-        display: block;
-        margin-bottom: 4px;
-        color: var(--muted);
-        font-size: 11px;
-      }
-
-      .diagnostic-grid dd {
-        margin: 0;
-        font-weight: 600;
-      }
-
-      .diagnostic-block code,
-      .diagnostic-block pre {
-        display: block;
-        max-height: 128px;
-        margin: 0;
-        padding: 8px;
-        overflow: auto;
-        border-radius: 5px;
-        background: var(--surface);
-        color: var(--text);
-        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-        font-size: 11px;
-        line-height: 16px;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
       }
 
       @media (min-width: 560px) {
@@ -1058,53 +705,10 @@
         </section>
 
         <section class="preview-panel">
-          <section class="section ai-section">
-            <div class="section-heading">
-              <h2>AI 语义命名</h2>
-              <button class="icon-button" id="ai-settings-button" type="button" title="AI 设置" aria-label="打开 AI 设置">⚙</button>
-            </div>
-            <div class="grid-2">
-              <div class="field">
-                <label for="ai-service-select">服务</label>
-                <select id="ai-service-select">
-                  <option value="">请先配置服务</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="ai-strategy-select">命名策略</label>
-                <select id="ai-strategy-select">
-                  <option value="">通用素材命名</option>
-                </select>
-              </div>
-            </div>
-            <p class="helper ai-provider-summary" id="ai-provider-summary">尚未配置 AI 服务</p>
-          </section>
-
           <div class="section-heading">
             <h2>文件名预览</h2>
             <span class="helper" id="preview-summary">0 个文件</span>
           </div>
-          <div class="preview-toolbar">
-            <button class="ai-analyze-button" id="ai-analyze-button" type="button" hidden>✦ AI 分析当前选择</button>
-            <button class="icon-button" id="ai-clear-button" type="button" title="清除 AI 结果" aria-label="清除 AI 结果" hidden>↺</button>
-          </div>
-          <section class="ai-progress" id="ai-progress" data-phase="starting" role="status" aria-live="polite" hidden>
-            <div class="ai-progress-heading">
-              <div class="ai-progress-title-wrap">
-                <span class="ai-progress-pulse" aria-hidden="true"></span>
-                <strong class="ai-progress-title" id="ai-progress-title">正在启动 AI 分析</strong>
-              </div>
-              <span class="ai-progress-batch" id="ai-progress-batch"></span>
-            </div>
-            <p class="ai-progress-detail" id="ai-progress-detail"></p>
-            <div class="ai-progress-track" id="ai-progress-track" role="progressbar" aria-label="AI 已完成命名数量" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
-              <div class="ai-progress-value" id="ai-progress-value"></div>
-            </div>
-            <div class="ai-progress-meta">
-              <span class="ai-progress-count" id="ai-progress-count">已命名 0 / 0</span>
-              <button class="ai-progress-diagnostic" id="ai-progress-diagnostic" type="button" hidden>查看错误详情</button>
-            </div>
-          </section>
           <div class="preview-list" id="preview-list"></div>
         </section>
       </div>
@@ -1114,166 +718,6 @@
         <button class="primary-button" id="export-button" type="button" disabled>打包下载</button>
       </footer>
     </main>
-
-    <section class="settings-view" id="ai-settings-view" aria-label="AI 设置" hidden>
-      <header class="settings-header">
-        <button class="icon-button" id="ai-settings-back" type="button" aria-label="返回">←</button>
-        <h2>AI 设置</h2>
-      </header>
-
-      <nav class="settings-tabs" aria-label="AI 设置分类">
-        <button class="settings-tab is-active" type="button" data-settings-tab="connection">服务配置</button>
-        <button class="settings-tab" type="button" data-settings-tab="prompts">提示词模板</button>
-        <button class="settings-tab" type="button" data-settings-tab="skills">Skill</button>
-      </nav>
-
-      <div class="settings-content">
-        <section class="settings-panel" data-settings-panel="connection">
-          <div class="field">
-            <label for="ai-provider-select">AI 服务</label>
-            <div class="grid-2">
-              <select id="ai-provider-select"></select>
-              <div class="settings-actions">
-                <button class="secondary-button" id="ai-provider-add" type="button">新增</button>
-                <button class="secondary-button" id="ai-provider-delete" type="button">删除</button>
-              </div>
-            </div>
-          </div>
-          <div class="field">
-            <label for="ai-provider-name">服务名称</label>
-            <input id="ai-provider-name" type="text" maxlength="80" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="ai-api-format">接口格式</label>
-            <select id="ai-api-format">
-              <option value="auto">自动识别（推荐）</option>
-              <option value="gemini-native">Gemini 原生</option>
-              <option value="openai-compatible">OpenAI 兼容</option>
-              <option value="anthropic-compatible">Anthropic 兼容</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="ai-request-mode">请求方式</label>
-            <select id="ai-request-mode">
-              <option value="auto">自动（优先本地服务）</option>
-              <option value="bridge">仅本地服务</option>
-              <option value="direct">直接连接</option>
-            </select>
-            <p class="helper">自动模式检测到 127.0.0.1:7879 后，模型和图片分析都会经本地服务转发。</p>
-          </div>
-          <div class="bridge-status-card" id="ai-bridge-status" data-state="checking">
-            <span class="bridge-status-dot" aria-hidden="true"></span>
-            <div class="bridge-status-copy">
-              <strong id="ai-bridge-status-text">正在检测本地服务…</strong>
-              <span>http://127.0.0.1:7879</span>
-            </div>
-            <button class="secondary-button bridge-refresh" id="ai-bridge-refresh" type="button">检测</button>
-          </div>
-          <div class="field">
-            <label for="ai-base-url">Base URL</label>
-            <input id="ai-base-url" type="text" autocomplete="off" spellcheck="false" placeholder="https://api.example.com/v1" />
-          </div>
-          <div class="field">
-            <label for="ai-api-key">API Key</label>
-            <input id="ai-api-key" type="password" autocomplete="off" placeholder="输入新 Key；留空则保留已保存的 Key" />
-            <p class="helper" id="ai-key-helper">完整 Key 保存后不会重新显示。</p>
-          </div>
-          <div class="connection-result" id="ai-connection-result">填写连接信息后获取模型。</div>
-          <details class="request-diagnostic" id="ai-request-diagnostic" hidden>
-            <summary>
-              <span>请求诊断</span>
-              <span class="diagnostic-state" id="ai-diagnostic-state">未收到响应</span>
-            </summary>
-            <div class="diagnostic-body">
-              <dl class="diagnostic-grid">
-                <div>
-                  <dt>阶段</dt>
-                  <dd id="ai-diagnostic-phase">—</dd>
-                </div>
-                <div>
-                  <dt>HTTP 状态</dt>
-                  <dd id="ai-diagnostic-status">—</dd>
-                </div>
-                <div>
-                  <dt>请求通道</dt>
-                  <dd id="ai-diagnostic-transport">—</dd>
-                </div>
-              </dl>
-              <div class="diagnostic-block">
-                <span>请求</span>
-                <code id="ai-diagnostic-request">—</code>
-              </div>
-              <div class="diagnostic-block">
-                <span>错误</span>
-                <pre id="ai-diagnostic-error">—</pre>
-              </div>
-              <div class="diagnostic-block">
-                <span>响应摘要</span>
-                <pre id="ai-diagnostic-response">—</pre>
-              </div>
-              <p class="helper" id="ai-diagnostic-cause"></p>
-              <div class="settings-actions">
-                <button class="secondary-button" id="ai-copy-diagnostic" type="button">复制诊断信息</button>
-              </div>
-            </div>
-          </details>
-          <div class="settings-actions">
-            <button class="secondary-button" id="ai-fetch-models" type="button">测试并获取模型</button>
-          </div>
-          <div class="field">
-            <label for="ai-settings-model">视觉模型</label>
-            <select id="ai-settings-model">
-              <option value="">请先获取模型</option>
-            </select>
-            <input id="ai-manual-model" type="text" autocomplete="off" placeholder="模型列表不可用时，可手动填写模型 ID" />
-          </div>
-          <button class="settings-save" id="ai-save-connection" type="button">保存服务配置</button>
-        </section>
-
-        <section class="settings-panel" data-settings-panel="prompts" hidden>
-          <div class="field">
-            <label for="ai-prompt-library">提示词模板</label>
-            <select id="ai-prompt-library"></select>
-          </div>
-          <div class="library-toolbar">
-            <button class="secondary-button" id="ai-prompt-new" type="button">新建</button>
-            <button class="secondary-button" id="ai-prompt-import" type="button">导入</button>
-            <button class="secondary-button" id="ai-prompt-delete" type="button">删除</button>
-            <input id="ai-prompt-file" type="file" accept=".txt,.md,.json,text/plain,application/json" hidden />
-          </div>
-          <div class="field">
-            <label for="ai-prompt-name">名称</label>
-            <input id="ai-prompt-name" type="text" maxlength="80" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="ai-prompt-content">提示词内容</label>
-            <textarea id="ai-prompt-content" maxlength="20000" spellcheck="false"></textarea>
-          </div>
-          <button class="settings-save" id="ai-save-prompt" type="button">保存提示词</button>
-        </section>
-
-        <section class="settings-panel" data-settings-panel="skills" hidden>
-          <div class="field">
-            <label for="ai-skill-library">Skill</label>
-            <select id="ai-skill-library"></select>
-          </div>
-          <div class="library-toolbar">
-            <button class="secondary-button" id="ai-skill-upload" type="button">上传 .md / .txt</button>
-            <button class="secondary-button" id="ai-skill-delete" type="button">删除</button>
-            <input id="ai-skill-file" type="file" accept=".md,.txt,text/markdown,text/plain" hidden />
-          </div>
-          <div class="field">
-            <label for="ai-skill-name">名称</label>
-            <input id="ai-skill-name" type="text" maxlength="100" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="ai-skill-content">规则内容</label>
-            <textarea id="ai-skill-content" maxlength="64000" spellcheck="false"></textarea>
-          </div>
-          <button class="settings-save" id="ai-save-skill" type="button">保存 Skill</button>
-        </section>
-      </div>
-    </section>
     <script>
 "use strict";
 (() => {
@@ -1288,7 +732,6 @@
   };
   var SUPPORTED_TOKENS = [
     "name",
-    "ai",
     "index",
     "parent",
     "page",
@@ -1355,7 +798,7 @@
     const availableLength = Math.max(1, MAX_STEM_LENGTH - Array.from(suffix).length);
     return `${truncate(stem, availableLength).replace(/[. ]+$/g, "")}${suffix}`;
   }
-  function buildDownloadNames(items, config, format, scale, now = /* @__PURE__ */ new Date(), semanticNames = {}) {
+  function buildDownloadNames(items, config, format, scale, now = /* @__PURE__ */ new Date()) {
     const template = config.template.trim() || DEFAULT_NAMING_CONFIG.template;
     const startIndex = Number.isFinite(config.startIndex) ? Math.max(0, Math.floor(config.startIndex)) : 1;
     const padding = Number.isFinite(config.indexPadding) ? Math.min(8, Math.max(1, Math.floor(config.indexPadding))) : 2;
@@ -1363,11 +806,8 @@
     const usedNames = /* @__PURE__ */ new Set();
     return items.map((item, position) => {
       const index = String(startIndex + position).padStart(padding, "0");
-      const semanticName = semanticNames[item.id]?.trim();
-      const sourceName = semanticName || item.name;
       const values = {
-        name: stripKnownExtension(sourceName) || "asset",
-        ai: stripKnownExtension(semanticName || item.name) || "asset",
+        name: stripKnownExtension(item.name) || "asset",
         index,
         parent: item.parentName || "root",
         page: item.pageName || "page",
@@ -2129,19 +1569,19 @@
     format: "PNG",
     scale: 2
   };
+  var PREVIEW_CONCURRENCY = 4;
   var state = {
     items: [],
     ignoredCount: 0,
     busy: false,
     singleExportNodeId: null,
     config: { ...defaultConfig },
-    aiSettings: null,
-    aiBusy: false,
-    aiProgress: null,
-    aiSuggestions: {},
-    bridgeStatus: null,
-    modelOptions: {},
-    apiKeyDrafts: {}
+    collapsedPreviews: /* @__PURE__ */ new Set(),
+    previewUrls: /* @__PURE__ */ new Map(),
+    previewLoading: /* @__PURE__ */ new Set(),
+    previewQueue: [],
+    previewActive: /* @__PURE__ */ new Set(),
+    previewErrors: /* @__PURE__ */ new Map()
   };
   function element(id) {
     const found = document.getElementById(id);
@@ -2164,64 +1604,6 @@
   var exportButton = element("export-button");
   var resetButton = element("reset-button");
   var status = element("status");
-  var aiServiceSelect = element("ai-service-select");
-  var aiStrategySelect = element("ai-strategy-select");
-  var aiProviderSummary = element("ai-provider-summary");
-  var aiAnalyzeButton = element("ai-analyze-button");
-  var aiClearButton = element("ai-clear-button");
-  var aiProgress = element("ai-progress");
-  var aiProgressTitle = element("ai-progress-title");
-  var aiProgressBatch = element("ai-progress-batch");
-  var aiProgressDetail = element("ai-progress-detail");
-  var aiProgressTrack = element("ai-progress-track");
-  var aiProgressValue = element("ai-progress-value");
-  var aiProgressCount = element("ai-progress-count");
-  var aiProgressDiagnostic = element("ai-progress-diagnostic");
-  var aiSettingsButton = element("ai-settings-button");
-  var aiSettingsView = element("ai-settings-view");
-  var aiSettingsBack = element("ai-settings-back");
-  var aiProviderSelect = element("ai-provider-select");
-  var aiProviderAdd = element("ai-provider-add");
-  var aiProviderDelete = element("ai-provider-delete");
-  var aiProviderName = element("ai-provider-name");
-  var aiApiFormat = element("ai-api-format");
-  var aiRequestMode = element("ai-request-mode");
-  var aiBridgeStatus = element("ai-bridge-status");
-  var aiBridgeStatusText = element("ai-bridge-status-text");
-  var aiBridgeRefresh = element("ai-bridge-refresh");
-  var aiBaseUrl = element("ai-base-url");
-  var aiApiKey = element("ai-api-key");
-  var aiKeyHelper = element("ai-key-helper");
-  var aiConnectionResult = element("ai-connection-result");
-  var aiRequestDiagnostic = element("ai-request-diagnostic");
-  var aiDiagnosticState = element("ai-diagnostic-state");
-  var aiDiagnosticPhase = element("ai-diagnostic-phase");
-  var aiDiagnosticStatus = element("ai-diagnostic-status");
-  var aiDiagnosticTransport = element("ai-diagnostic-transport");
-  var aiDiagnosticRequest = element("ai-diagnostic-request");
-  var aiDiagnosticError = element("ai-diagnostic-error");
-  var aiDiagnosticResponse = element("ai-diagnostic-response");
-  var aiDiagnosticCause = element("ai-diagnostic-cause");
-  var aiCopyDiagnostic = element("ai-copy-diagnostic");
-  var aiFetchModels = element("ai-fetch-models");
-  var aiSettingsModel = element("ai-settings-model");
-  var aiManualModel = element("ai-manual-model");
-  var aiSaveConnection = element("ai-save-connection");
-  var aiPromptLibrary = element("ai-prompt-library");
-  var aiPromptNew = element("ai-prompt-new");
-  var aiPromptImport = element("ai-prompt-import");
-  var aiPromptDelete = element("ai-prompt-delete");
-  var aiPromptFile = element("ai-prompt-file");
-  var aiPromptName = element("ai-prompt-name");
-  var aiPromptContent = element("ai-prompt-content");
-  var aiSavePrompt = element("ai-save-prompt");
-  var aiSkillLibrary = element("ai-skill-library");
-  var aiSkillUpload = element("ai-skill-upload");
-  var aiSkillDelete = element("ai-skill-delete");
-  var aiSkillFile = element("ai-skill-file");
-  var aiSkillName = element("ai-skill-name");
-  var aiSkillContent = element("ai-skill-content");
-  var aiSaveSkill = element("ai-save-skill");
   function saveConfig() {
     postMessage2({ type: "save-settings", config: state.config });
   }
@@ -2245,37 +1627,6 @@
   function postMessage2(message) {
     parent.postMessage({ pluginMessage: message }, "*");
   }
-  var currentAiDiagnostic;
-  function aiDiagnosticText(diagnostic) {
-    const statusText = diagnostic.responseAvailable && diagnostic.status !== null ? `${diagnostic.status}${diagnostic.statusText ? ` ${diagnostic.statusText}` : ""}` : "\u672A\u6536\u5230\u53EF\u8BFB\u53D6\u7684 HTTP \u54CD\u5E94";
-    return [
-      `\u9636\u6BB5\uFF1A${diagnostic.phase === "models" ? "\u83B7\u53D6\u6A21\u578B" : "\u56FE\u7247\u5206\u6790"}`,
-      `\u8BF7\u6C42\u901A\u9053\uFF1A${diagnostic.transport === "bridge" ? "\u672C\u5730\u670D\u52A1 127.0.0.1:7879" : "Figma \u76F4\u63A5\u8FDE\u63A5"}`,
-      `\u8BF7\u6C42\uFF1A${diagnostic.method} ${diagnostic.endpoint}`,
-      `HTTP \u72B6\u6001\uFF1A${statusText}`,
-      `\u9519\u8BEF\uFF1A${diagnostic.error}`,
-      `\u53EF\u80FD\u539F\u56E0\uFF1A${diagnostic.probableCause}`,
-      `\u54CD\u5E94\u6458\u8981\uFF1A${diagnostic.responsePreview || "Figma \u672A\u5411\u63D2\u4EF6\u66B4\u9732\u54CD\u5E94\u5934\u6216\u54CD\u5E94\u4F53\u3002"}`
-    ].join("\n");
-  }
-  function renderAiDiagnostic(diagnostic) {
-    currentAiDiagnostic = diagnostic;
-    aiRequestDiagnostic.hidden = !diagnostic;
-    if (!diagnostic) {
-      aiRequestDiagnostic.open = false;
-      return;
-    }
-    aiRequestDiagnostic.open = true;
-    aiDiagnosticState.textContent = diagnostic.responseAvailable ? "\u5DF2\u6536\u5230\u54CD\u5E94" : "\u672A\u6536\u5230\u54CD\u5E94";
-    aiDiagnosticPhase.textContent = diagnostic.phase === "models" ? "\u83B7\u53D6\u6A21\u578B" : "\u56FE\u7247\u5206\u6790";
-    aiDiagnosticStatus.textContent = diagnostic.responseAvailable && diagnostic.status !== null ? `${diagnostic.status}${diagnostic.statusText ? ` ${diagnostic.statusText}` : ""}` : "\u4E0D\u53EF\u7528";
-    aiDiagnosticTransport.textContent = diagnostic.transport === "bridge" ? "\u672C\u5730\u670D\u52A1" : "\u76F4\u63A5\u8FDE\u63A5";
-    aiDiagnosticRequest.textContent = `${diagnostic.method} ${diagnostic.endpoint}`;
-    aiDiagnosticError.textContent = diagnostic.error;
-    aiDiagnosticResponse.textContent = diagnostic.responsePreview || "Figma \u672A\u5411\u63D2\u4EF6\u66B4\u9732\u54CD\u5E94\u5934\u6216\u54CD\u5E94\u4F53\u3002";
-    aiDiagnosticCause.textContent = diagnostic.probableCause;
-    aiCopyDiagnostic.textContent = "\u590D\u5236\u8BCA\u65AD\u4FE1\u606F";
-  }
   function syncControls() {
     formatSelect.value = state.config.format;
     templateInput.value = state.config.template;
@@ -2290,213 +1641,6 @@
   function setStatus(message, tone = "neutral") {
     status.textContent = message;
     status.dataset.tone = tone;
-  }
-  function aiElapsedSeconds(progress) {
-    return Math.max(0, Math.floor((Date.now() - progress.phaseStartedAt) / 1e3));
-  }
-  function renderAiProgress() {
-    const progress = state.aiProgress;
-    aiProgress.hidden = !progress;
-    if (!progress) return;
-    aiProgress.dataset.phase = progress.phase;
-    const elapsed = aiElapsedSeconds(progress);
-    let title = "\u6B63\u5728\u542F\u52A8 AI \u5206\u6790";
-    let detail = "\u6B63\u5728\u68C0\u67E5\u672C\u5730\u670D\u52A1\u548C\u6A21\u578B\u8FDE\u63A5\u2026";
-    if (progress.phase === "preparing") {
-      const current = Math.min(progress.batchPrepared + 1, progress.batchSize);
-      title = "\u6B63\u5728\u51C6\u5907\u8BBE\u8BA1\u56FE";
-      detail = progress.batchPrepared >= progress.batchSize ? `\u672C\u6279 ${progress.batchSize} \u5F20\u56FE\u7247\u5DF2\u51C6\u5907\u5B8C\u6210` : `\u6B63\u5728\u51C6\u5907\u7B2C ${current} / ${progress.batchSize} \u5F20\u56FE\u7247`;
-    } else if (progress.phase === "requesting") {
-      title = elapsed >= 45 ? "\u6A21\u578B\u54CD\u5E94\u8F83\u6162\uFF0C\u4ECD\u5728\u7B49\u5F85" : elapsed >= 15 ? "\u6A21\u578B\u4ECD\u5728\u5904\u7406\u4E2D" : "\u6B63\u5728\u7B49\u5F85\u6A21\u578B\u8FD4\u56DE";
-      detail = `${progress.model || "\u89C6\u89C9\u6A21\u578B"} \xB7 \u5DF2\u7B49\u5F85 ${elapsed} \u79D2`;
-    } else if (progress.phase === "batch-complete") {
-      title = `\u7B2C ${progress.batch} \u6279\u5206\u6790\u5B8C\u6210`;
-      detail = progress.batch < progress.batchCount ? "\u6210\u529F\u7ED3\u679C\u5DF2\u66F4\u65B0\uFF0C\u6B63\u5728\u7EE7\u7EED\u4E0B\u4E00\u6279" : "\u6B63\u5728\u6C47\u603B\u6700\u7EC8\u7ED3\u679C";
-    } else if (progress.phase === "batch-failed") {
-      title = `\u7B2C ${progress.batch} \u6279\u672A\u80FD\u5B8C\u6210`;
-      detail = progress.batch < progress.batchCount ? "\u9519\u8BEF\u8BE6\u60C5\u5DF2\u4FDD\u7559\uFF0C\u6B63\u5728\u7EE7\u7EED\u4E0B\u4E00\u6279" : "\u6B63\u5728\u6C47\u603B\u5DF2\u6210\u529F\u7684\u7ED3\u679C";
-    } else if (progress.phase === "cancelling") {
-      title = "\u6B63\u5728\u505C\u6B62\u672C\u6B21\u5206\u6790";
-      detail = "\u5DF2\u751F\u6210\u7684\u8BED\u4E49\u540D\u79F0\u4F1A\u4FDD\u7559";
-    } else if (progress.phase === "complete") {
-      title = progress.failed > 0 ? "\u5206\u6790\u5B8C\u6210\uFF0C\u90E8\u5206\u6587\u4EF6\u672A\u547D\u540D" : "AI \u5206\u6790\u5B8C\u6210";
-      detail = progress.failed > 0 ? `${progress.failed} \u4E2A\u6587\u4EF6\u672A\u547D\u540D${progress.failedBatchCount ? ` \xB7 ${progress.failedBatchCount} \u6279\u8BF7\u6C42\u5931\u8D25` : ""}` : `\u5168\u90E8 ${progress.total} \u4E2A\u6587\u4EF6\u5DF2\u751F\u6210\u8BED\u4E49\u540D\u79F0`;
-    } else if (progress.phase === "cancelled") {
-      title = "\u5DF2\u53D6\u6D88 AI \u5206\u6790";
-      detail = progress.named > 0 ? `\u5DF2\u4FDD\u7559 ${progress.named} \u4E2A\u8BED\u4E49\u540D\u79F0` : "\u6CA1\u6709\u751F\u6210\u65B0\u7684\u8BED\u4E49\u540D\u79F0";
-    } else if (progress.phase === "error") {
-      title = "AI \u5206\u6790\u672A\u5B8C\u6210";
-      detail = progress.message || "\u6A21\u578B\u6CA1\u6709\u8FD4\u56DE\u6709\u6548\u7684\u8BED\u4E49\u540D\u79F0";
-    }
-    aiProgressTitle.textContent = title;
-    aiProgressBatch.textContent = progress.batchCount > 0 && progress.phase !== "cancelled" ? `\u7B2C ${Math.max(1, progress.batch)} / ${progress.batchCount} \u6279` : "";
-    aiProgressDetail.textContent = detail;
-    aiProgressDetail.title = progress.message || detail;
-    aiProgressCount.textContent = progress.phase === "preparing" ? `\u5DF2\u51C6\u5907 ${progress.prepared} / ${progress.total} \xB7 \u5DF2\u547D\u540D ${progress.named}` : `\u5DF2\u547D\u540D ${progress.named} / ${progress.total}`;
-    const percentage = progress.total > 0 ? Math.round(progress.named / progress.total * 100) : 0;
-    aiProgressValue.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
-    aiProgressTrack.classList.toggle("is-waiting", progress.phase === "requesting");
-    aiProgressTrack.setAttribute("aria-valuemax", String(progress.total));
-    aiProgressTrack.setAttribute("aria-valuenow", String(progress.named));
-    aiProgressDiagnostic.hidden = !progress.diagnostic;
-  }
-  function activeAiProvider() {
-    const settings = state.aiSettings;
-    if (!settings) return null;
-    return settings.providers.find((provider) => provider.id === settings.activeProviderId) || settings.providers[0] || null;
-  }
-  function hasConfiguredAiProvider() {
-    return state.aiSettings?.providers.some((provider) => Boolean(provider.baseUrl.trim()) && Boolean(provider.model.trim()) && provider.keyConfigured) || false;
-  }
-  function option(value, label) {
-    const item = document.createElement("option");
-    item.value = value;
-    item.textContent = label;
-    return item;
-  }
-  function resolvedFormatLabel(format) {
-    if (format === "gemini-native") return "Gemini \u539F\u751F";
-    if (format === "anthropic-compatible") return "Anthropic \u517C\u5BB9";
-    if (format === "openai-compatible") return "OpenAI \u517C\u5BB9";
-    return "\u7B49\u5F85\u8BC6\u522B";
-  }
-  function persistAiSettings() {
-    if (!state.aiSettings) return;
-    const apiKeys = Object.fromEntries(
-      Object.entries(state.apiKeyDrafts).filter(([, value]) => value.trim())
-    );
-    postMessage2({
-      type: "save-ai-settings",
-      settings: state.aiSettings,
-      ...Object.keys(apiKeys).length ? { apiKeys } : {}
-    });
-  }
-  function renderAiMainControls() {
-    const settings = state.aiSettings;
-    const provider = activeAiProvider();
-    aiServiceSelect.replaceChildren();
-    if (!settings || settings.providers.length === 0 || !provider) {
-      aiServiceSelect.append(option("", "\u8BF7\u5148\u914D\u7F6E\u670D\u52A1"));
-      aiServiceSelect.disabled = true;
-      aiProviderSummary.textContent = "\u5C1A\u672A\u914D\u7F6E AI \u670D\u52A1";
-    } else {
-      for (const service of settings.providers) {
-        aiServiceSelect.append(option(service.id, service.name));
-      }
-      aiServiceSelect.value = provider.id;
-      aiServiceSelect.disabled = state.busy || state.aiBusy;
-      const modelSummary = provider.model ? `\u6A21\u578B\uFF1A${provider.model}` : "\u6A21\u578B\uFF1A\u672A\u914D\u7F6E";
-      const baseUrlWarning = provider.baseUrl ? "" : " \xB7 \u672A\u914D\u7F6E Base URL";
-      const keyWarning = provider.keyConfigured ? "" : " \xB7 \u672A\u4FDD\u5B58 API Key";
-      aiProviderSummary.textContent = `${modelSummary} \xB7 ${resolvedFormatLabel(provider.resolvedApiFormat)}${baseUrlWarning}${keyWarning}`;
-    }
-    aiStrategySelect.replaceChildren();
-    if (!settings) {
-      aiStrategySelect.append(option("", "\u901A\u7528\u7D20\u6750\u547D\u540D"));
-      aiStrategySelect.disabled = true;
-    } else {
-      const promptGroup = document.createElement("optgroup");
-      promptGroup.label = "\u63D0\u793A\u8BCD\u6A21\u677F";
-      for (const prompt of settings.prompts) {
-        promptGroup.append(option(`prompt:${prompt.id}`, prompt.name));
-      }
-      aiStrategySelect.append(promptGroup);
-      if (settings.skills.length > 0) {
-        const skillGroup = document.createElement("optgroup");
-        skillGroup.label = "Skill";
-        for (const skill of settings.skills) {
-          skillGroup.append(option(`skill:${skill.id}`, skill.name));
-        }
-        aiStrategySelect.append(skillGroup);
-      }
-      aiStrategySelect.value = `${settings.strategy.type}:${settings.strategy.id}`;
-      aiStrategySelect.disabled = state.aiBusy;
-    }
-    const suggestionCount = Object.keys(state.aiSuggestions).length;
-    const cancelling = state.aiProgress?.phase === "cancelling";
-    aiAnalyzeButton.hidden = !hasConfiguredAiProvider();
-    aiAnalyzeButton.disabled = state.busy || cancelling || !state.aiBusy && state.items.length === 0;
-    aiAnalyzeButton.classList.toggle("is-cancel", state.aiBusy);
-    aiAnalyzeButton.textContent = state.aiBusy ? cancelling ? "\u6B63\u5728\u505C\u6B62\u2026" : "\u505C\u6B62\u672C\u6B21\u5206\u6790" : suggestionCount > 0 ? "\u2726 \u91CD\u65B0\u5206\u6790\u5F53\u524D\u9009\u62E9" : "\u2726 AI \u5206\u6790\u5F53\u524D\u9009\u62E9";
-    aiClearButton.hidden = suggestionCount === 0;
-    aiClearButton.disabled = state.busy || state.aiBusy;
-    aiSettingsButton.disabled = state.busy || state.aiBusy;
-  }
-  function renderProviderForm() {
-    const settings = state.aiSettings;
-    aiProviderSelect.replaceChildren();
-    if (!settings || settings.providers.length === 0) return;
-    for (const provider2 of settings.providers) {
-      aiProviderSelect.append(option(provider2.id, provider2.name));
-    }
-    aiProviderSelect.value = settings.activeProviderId;
-    const provider = activeAiProvider();
-    if (!provider) return;
-    aiProviderName.value = provider.name;
-    aiApiFormat.value = provider.apiFormat;
-    aiRequestMode.value = settings.requestMode;
-    aiBaseUrl.value = provider.baseUrl;
-    aiApiKey.value = state.apiKeyDrafts[provider.id] || "";
-    aiKeyHelper.textContent = provider.keyConfigured ? `\u5DF2\u4FDD\u5B58\uFF1A${provider.maskedApiKey}\uFF1B\u8F93\u5165\u65B0 Key \u53EF\u66FF\u6362\u3002` : "\u5C1A\u672A\u4FDD\u5B58 API Key\u3002\u5B8C\u6574 Key \u4FDD\u5B58\u540E\u4E0D\u4F1A\u91CD\u65B0\u663E\u793A\u3002";
-    aiConnectionResult.textContent = provider.resolvedApiFormat ? `\u5F53\u524D\u8BC6\u522B\uFF1A${resolvedFormatLabel(provider.resolvedApiFormat)}` : "\u586B\u5199\u8FDE\u63A5\u4FE1\u606F\u540E\u83B7\u53D6\u6A21\u578B\u3002";
-    renderSettingsModels(provider);
-    aiProviderDelete.disabled = settings.providers.length <= 1;
-  }
-  function renderBridgeStatus() {
-    const bridge = state.bridgeStatus;
-    if (!bridge) {
-      aiBridgeStatus.dataset.state = "checking";
-      aiBridgeStatusText.textContent = "\u6B63\u5728\u68C0\u6D4B\u672C\u5730\u670D\u52A1\u2026";
-      aiBridgeRefresh.disabled = true;
-      return;
-    }
-    aiBridgeStatus.dataset.state = bridge.available ? "online" : "offline";
-    aiBridgeStatusText.textContent = bridge.message;
-    aiBridgeRefresh.disabled = false;
-  }
-  function renderSettingsModels(provider) {
-    const models = state.modelOptions[provider.id] || [];
-    aiSettingsModel.replaceChildren(option("", models.length ? "\u8BF7\u9009\u62E9\u6A21\u578B" : "\u8BF7\u5148\u83B7\u53D6\u6A21\u578B"));
-    for (const model of models) aiSettingsModel.append(option(model.id, model.name));
-    if (provider.model && !models.some((model) => model.id === provider.model)) {
-      aiSettingsModel.append(option(provider.model, provider.model));
-    }
-    aiSettingsModel.value = provider.model;
-    aiManualModel.value = provider.model;
-  }
-  function renderPromptEditor(selectedId) {
-    const settings = state.aiSettings;
-    if (!settings) return;
-    aiPromptLibrary.replaceChildren();
-    for (const prompt2 of settings.prompts) aiPromptLibrary.append(option(prompt2.id, prompt2.name));
-    const id = selectedId || aiPromptLibrary.value || settings.prompts[0]?.id || "";
-    aiPromptLibrary.value = id;
-    const prompt = settings.prompts.find((item) => item.id === id) || settings.prompts[0];
-    aiPromptName.value = prompt?.name || "";
-    aiPromptContent.value = prompt?.content || "";
-    aiPromptDelete.disabled = settings.prompts.length <= 1;
-  }
-  function renderSkillEditor(selectedId) {
-    const settings = state.aiSettings;
-    if (!settings) return;
-    aiSkillLibrary.replaceChildren();
-    for (const skill2 of settings.skills) aiSkillLibrary.append(option(skill2.id, skill2.name));
-    if (settings.skills.length === 0) {
-      aiSkillLibrary.append(option("", "\u5C1A\u672A\u4E0A\u4F20 Skill"));
-    }
-    const id = selectedId || aiSkillLibrary.value || settings.skills[0]?.id || "";
-    aiSkillLibrary.value = id;
-    const skill = settings.skills.find((item) => item.id === id);
-    aiSkillName.value = skill?.name || "";
-    aiSkillContent.value = skill?.content || "";
-    aiSkillDelete.disabled = !skill;
-    aiSaveSkill.disabled = !skill;
-  }
-  function renderAiSettingsEditors() {
-    renderProviderForm();
-    renderBridgeStatus();
-    renderPromptEditor();
-    renderSkillEditor();
   }
   function namingError() {
     const unknown = findUnknownTokens(state.config.template);
@@ -2524,9 +1668,58 @@
       state.config,
       state.config.format,
       state.config.scale,
-      /* @__PURE__ */ new Date(),
-      state.aiSuggestions
+      /* @__PURE__ */ new Date()
     );
+  }
+  function pumpPreviewRequests() {
+    while (state.previewActive.size < PREVIEW_CONCURRENCY && state.previewQueue.length > 0) {
+      const nodeId = state.previewQueue.shift();
+      if (!nodeId || !state.previewLoading.has(nodeId) || !state.items.some((item) => item.id === nodeId)) {
+        if (nodeId) state.previewLoading.delete(nodeId);
+        continue;
+      }
+      state.previewActive.add(nodeId);
+      postMessage2({ type: "preview-one", nodeId });
+    }
+  }
+  function requestPreview(nodeId) {
+    if (state.previewUrls.has(nodeId) || state.previewLoading.has(nodeId) || state.previewErrors.has(nodeId)) {
+      return;
+    }
+    state.previewLoading.add(nodeId);
+    state.previewQueue.push(nodeId);
+    pumpPreviewRequests();
+  }
+  function reconcilePreviewState(items) {
+    const activeIds = new Set(items.map((item) => item.id));
+    for (const [nodeId, url] of state.previewUrls) {
+      if (!activeIds.has(nodeId)) {
+        URL.revokeObjectURL(url);
+        state.previewUrls.delete(nodeId);
+      }
+    }
+    for (const nodeId of state.previewLoading) {
+      if (!activeIds.has(nodeId)) {
+        state.previewLoading.delete(nodeId);
+      }
+    }
+    state.previewQueue = state.previewQueue.filter((nodeId) => activeIds.has(nodeId));
+    for (const nodeId of state.previewActive) {
+      if (!activeIds.has(nodeId)) {
+        state.previewActive.delete(nodeId);
+      }
+    }
+    for (const nodeId of state.previewErrors.keys()) {
+      if (!activeIds.has(nodeId)) {
+        state.previewErrors.delete(nodeId);
+      }
+    }
+    for (const nodeId of state.collapsedPreviews) {
+      if (!activeIds.has(nodeId)) {
+        state.collapsedPreviews.delete(nodeId);
+      }
+    }
+    pumpPreviewRequests();
   }
   function renderPreview() {
     const error = namingError();
@@ -2544,53 +1737,92 @@
     const names = previewNames();
     const visibleCount = Math.min(names.length, 60);
     for (let index = 0; index < visibleCount; index += 1) {
-      const row = document.createElement("div");
+      const item = state.items[index];
+      const nodeId = item.id;
+      const collapsed = state.collapsedPreviews.has(nodeId);
+      const row = document.createElement("article");
       row.className = "preview-row";
-      const original = document.createElement("span");
-      original.className = "preview-original";
-      original.textContent = state.items[index].name;
-      original.title = state.items[index].name;
-      const arrow = document.createElement("span");
-      arrow.className = "preview-arrow";
-      arrow.textContent = "\u2192";
+      row.classList.toggle("is-collapsed", collapsed);
+      const rowHeader = document.createElement("div");
+      rowHeader.className = "preview-row-header";
+      const fileMeta = document.createElement("div");
+      fileMeta.className = "preview-file-meta";
+      const toggleButton = document.createElement("button");
+      toggleButton.type = "button";
+      toggleButton.className = "preview-toggle";
+      toggleButton.setAttribute("aria-expanded", String(!collapsed));
+      toggleButton.setAttribute("aria-label", `${collapsed ? "\u5C55\u5F00" : "\u6536\u8D77"} ${names[index]} \u7684\u56FE\u7247\u9884\u89C8`);
+      toggleButton.title = collapsed ? "\u5C55\u5F00\u56FE\u7247\u9884\u89C8" : "\u6536\u8D77\u56FE\u7247\u9884\u89C8";
+      const toggleIcon = document.createElement("span");
+      toggleIcon.className = "preview-toggle-icon";
+      toggleIcon.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m5.5 7.5 4.5 4.5 4.5-4.5"></path></svg>';
       const renamed = document.createElement("span");
       renamed.className = "preview-renamed";
       renamed.textContent = names[index];
       renamed.title = names[index];
-      if (state.aiSuggestions[state.items[index].id]) {
-        const nodeId2 = state.items[index].id;
-        renamed.classList.add("is-editable");
-        renamed.tabIndex = 0;
-        renamed.title = "\u53CC\u51FB\u7F16\u8F91 AI \u8BED\u4E49\u540D\u79F0";
-        const editSuggestion = () => {
-          const next = window.prompt("\u7F16\u8F91 AI \u8BED\u4E49\u540D\u79F0", state.aiSuggestions[nodeId2]);
-          if (next?.trim()) {
-            state.aiSuggestions[nodeId2] = next.trim();
-            render();
-            setStatus("\u5DF2\u66F4\u65B0 AI \u8BED\u4E49\u540D\u79F0", "success");
-          }
-        };
-        renamed.addEventListener("dblclick", editSuggestion);
-        renamed.addEventListener("keydown", (event) => {
-          if (event.key === "Enter") editSuggestion();
-        });
-        const badge = document.createElement("span");
-        badge.className = "ai-badge";
-        badge.textContent = "\u2726 AI";
-        renamed.append(badge);
+      toggleButton.append(toggleIcon, renamed);
+      const source = document.createElement("div");
+      source.className = "preview-source";
+      const sourceLabel = document.createElement("span");
+      sourceLabel.className = "preview-source-label";
+      sourceLabel.textContent = "\u539F\u56FE\u5C42";
+      const sourceArrow = document.createElement("span");
+      sourceArrow.className = "preview-arrow";
+      sourceArrow.textContent = "\u2192";
+      const original = document.createElement("span");
+      original.className = "preview-original";
+      original.textContent = item.name;
+      original.title = item.name;
+      source.append(sourceLabel, sourceArrow, original);
+      fileMeta.append(toggleButton, source);
+      const previewBody = document.createElement("div");
+      previewBody.className = "preview-image-wrap";
+      previewBody.hidden = collapsed;
+      const previewUrl = state.previewUrls.get(nodeId);
+      const previewError = state.previewErrors.get(nodeId);
+      if (previewUrl) {
+        const image = document.createElement("img");
+        image.className = "preview-image";
+        image.src = previewUrl;
+        image.alt = `${names[index]} \u56FE\u7247\u9884\u89C8`;
+        previewBody.append(image);
+      } else {
+        const placeholder = document.createElement("span");
+        placeholder.className = "preview-placeholder";
+        if (previewError) {
+          placeholder.classList.add("is-error");
+          placeholder.textContent = previewError;
+        } else if (state.previewLoading.has(nodeId)) {
+          placeholder.textContent = "\u6B63\u5728\u751F\u6210\u56FE\u7247\u9884\u89C8\u2026";
+        } else {
+          placeholder.textContent = "\u51C6\u5907\u56FE\u7247\u9884\u89C8\u2026";
+        }
+        previewBody.append(placeholder);
       }
-      const nodeId = state.items[index].id;
+      toggleButton.addEventListener("click", () => {
+        const nextCollapsed = !state.collapsedPreviews.has(nodeId);
+        if (nextCollapsed) {
+          state.collapsedPreviews.add(nodeId);
+        } else {
+          state.collapsedPreviews.delete(nodeId);
+        }
+        row.classList.toggle("is-collapsed", nextCollapsed);
+        previewBody.hidden = nextCollapsed;
+        toggleButton.setAttribute("aria-expanded", String(!nextCollapsed));
+        toggleButton.setAttribute("aria-label", `${nextCollapsed ? "\u5C55\u5F00" : "\u6536\u8D77"} ${names[index]} \u7684\u56FE\u7247\u9884\u89C8`);
+        toggleButton.title = nextCollapsed ? "\u5C55\u5F00\u56FE\u7247\u9884\u89C8" : "\u6536\u8D77\u56FE\u7247\u9884\u89C8";
+      });
       const downloading = state.singleExportNodeId === nodeId;
       const downloadButton = document.createElement("button");
       downloadButton.type = "button";
       downloadButton.className = "preview-download-button";
       downloadButton.classList.toggle("is-loading", downloading);
-      downloadButton.disabled = state.busy || state.aiBusy || Boolean(error);
+      downloadButton.disabled = state.busy || Boolean(error);
       downloadButton.title = downloading ? `\u6B63\u5728\u4E0B\u8F7D ${names[index]}` : `\u5355\u72EC\u4E0B\u8F7D ${names[index]}`;
       downloadButton.setAttribute("aria-label", downloadButton.title);
       downloadButton.innerHTML = downloading ? '<svg class="preview-download-spinner" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6.5"></circle></svg>' : '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 3.25v8.5m0 0 3-3m-3 3-3-3M4.25 15.75h11.5"></path></svg>';
       downloadButton.addEventListener("click", () => {
-        if (state.busy || state.aiBusy || namingError()) return;
+        if (state.busy || namingError()) return;
         state.busy = true;
         state.singleExportNodeId = nodeId;
         render();
@@ -2598,12 +1830,13 @@
         postMessage2({
           type: "export-one",
           nodeId,
-          config: state.config,
-          ...Object.keys(state.aiSuggestions).length ? { semanticNames: state.aiSuggestions } : {}
+          config: state.config
         });
       });
-      row.append(original, arrow, renamed, downloadButton);
+      rowHeader.append(fileMeta, downloadButton);
+      row.append(rowHeader, previewBody);
       previewList.append(row);
+      requestPreview(nodeId);
     }
     if (names.length > visibleCount) {
       const more = document.createElement("div");
@@ -2620,8 +1853,8 @@
       button.disabled = isVectorFormat || state.busy;
     });
     const error = namingError();
-    exportButton.disabled = state.busy || state.aiBusy || state.items.length === 0 || Boolean(error);
-    exportButton.textContent = state.busy ? state.singleExportNodeId ? "\u6B63\u5728\u4E0B\u8F7D\u5355\u4E2A\u6587\u4EF6\u2026" : "\u6B63\u5728\u51C6\u5907\u4E0B\u8F7D\u2026" : state.aiBusy ? "AI \u5206\u6790\u4E2D\u2026" : state.items.length > 0 ? `\u6253\u5305\u4E0B\u8F7D ${state.items.length} \u4E2A\u6587\u4EF6` : "\u6253\u5305\u4E0B\u8F7D";
+    exportButton.disabled = state.busy || state.items.length === 0 || Boolean(error);
+    exportButton.textContent = state.busy ? state.singleExportNodeId ? "\u6B63\u5728\u4E0B\u8F7D\u5355\u4E2A\u6587\u4EF6\u2026" : "\u6B63\u5728\u51C6\u5907\u4E0B\u8F7D\u2026" : state.items.length > 0 ? `\u6253\u5305\u4E0B\u8F7D ${state.items.length} \u4E2A\u6587\u4EF6` : "\u6253\u5305\u4E0B\u8F7D";
     for (const control of [
       formatSelect,
       templateInput,
@@ -2635,15 +1868,13 @@
       button.disabled = state.busy;
     });
     previewList.querySelectorAll(".preview-download-button").forEach((button) => {
-      button.disabled = state.busy || state.aiBusy || Boolean(error);
+      button.disabled = state.busy || Boolean(error);
     });
-    renderAiMainControls();
   }
   function render() {
     renderSelection();
     renderPreview();
     renderActions();
-    renderAiProgress();
   }
   function updateConfig(patch) {
     state.config = { ...state.config, ...patch };
@@ -2667,7 +1898,6 @@
     tokenList.replaceChildren();
     const labels = {
       name: "\u56FE\u5C42\u540D",
-      ai: "AI \u8BED\u4E49\u540D",
       index: "\u5E8F\u53F7",
       parent: "\u7236\u7EA7\u540D",
       page: "\u9875\u9762\u540D",
@@ -2679,7 +1909,6 @@
       date: "\u65E5\u671F"
     };
     for (const token of SUPPORTED_TOKENS) {
-      if (token === "ai" && !hasConfiguredAiProvider()) continue;
       const button = document.createElement("button");
       button.type = "button";
       button.className = "token";
@@ -2732,297 +1961,6 @@
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 3e4);
   }
-  function uniqueId(prefix) {
-    return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-  }
-  function updateActiveProviderFromForm() {
-    const settings = state.aiSettings;
-    const provider = activeAiProvider();
-    if (!settings || !provider) return null;
-    provider.name = aiProviderName.value.trim() || "AI \u670D\u52A1";
-    provider.apiFormat = aiApiFormat.value;
-    settings.requestMode = aiRequestMode.value === "bridge" || aiRequestMode.value === "direct" ? aiRequestMode.value : "auto";
-    provider.baseUrl = aiBaseUrl.value.trim();
-    provider.model = (aiManualModel.value.trim() || aiSettingsModel.value).trim();
-    if (aiApiKey.value.trim()) state.apiKeyDrafts[provider.id] = aiApiKey.value.trim();
-    return provider;
-  }
-  function openAiSettings(tab = "connection") {
-    aiSettingsView.hidden = false;
-    switchSettingsTab(tab);
-    renderAiSettingsEditors();
-  }
-  function switchSettingsTab(tab) {
-    document.querySelectorAll("[data-settings-tab]").forEach((button) => {
-      button.classList.toggle("is-active", button.dataset.settingsTab === tab);
-    });
-    document.querySelectorAll("[data-settings-panel]").forEach((panel) => {
-      panel.hidden = panel.dataset.settingsPanel !== tab;
-    });
-  }
-  async function importedText(input, maxLength) {
-    const file = input.files?.[0];
-    if (!file) return null;
-    if (file.size > maxLength * 2) throw new Error(`\u6587\u4EF6\u8FC7\u5927\uFF0C\u6700\u591A\u5141\u8BB8 ${Math.round(maxLength / 1024)} KB`);
-    const text = (await file.text()).slice(0, maxLength);
-    if (!text.trim()) throw new Error("\u6587\u4EF6\u5185\u5BB9\u4E3A\u7A7A");
-    return { name: file.name.replace(/\.[^.]+$/u, ""), content: text };
-  }
-  aiSettingsButton.addEventListener("click", () => openAiSettings());
-  aiSettingsBack.addEventListener("click", () => {
-    aiSettingsView.hidden = true;
-  });
-  document.querySelectorAll("[data-settings-tab]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const tab = button.dataset.settingsTab;
-      if (tab === "connection" || tab === "prompts" || tab === "skills") switchSettingsTab(tab);
-    });
-  });
-  aiProviderSelect.addEventListener("change", () => {
-    if (!state.aiSettings) return;
-    state.aiSettings.activeProviderId = aiProviderSelect.value;
-    renderProviderForm();
-  });
-  aiProviderAdd.addEventListener("click", () => {
-    if (!state.aiSettings) return;
-    const id = uniqueId("provider");
-    state.aiSettings.providers.push({
-      id,
-      name: `AI \u670D\u52A1 ${state.aiSettings.providers.length + 1}`,
-      apiFormat: "auto",
-      resolvedApiFormat: null,
-      baseUrl: "",
-      model: "",
-      keyConfigured: false,
-      maskedApiKey: ""
-    });
-    state.aiSettings.activeProviderId = id;
-    renderProviderForm();
-  });
-  aiProviderDelete.addEventListener("click", () => {
-    const settings = state.aiSettings;
-    if (!settings || settings.providers.length <= 1) return;
-    const id = settings.activeProviderId;
-    settings.providers = settings.providers.filter((provider) => provider.id !== id);
-    delete state.apiKeyDrafts[id];
-    delete state.modelOptions[id];
-    settings.activeProviderId = settings.providers[0].id;
-    persistAiSettings();
-    renderProviderForm();
-  });
-  aiApiKey.addEventListener("input", () => {
-    const provider = activeAiProvider();
-    if (provider) state.apiKeyDrafts[provider.id] = aiApiKey.value;
-  });
-  aiSettingsModel.addEventListener("change", () => {
-    aiManualModel.value = aiSettingsModel.value;
-  });
-  aiRequestMode.addEventListener("change", () => {
-    if (!state.aiSettings) return;
-    state.aiSettings.requestMode = aiRequestMode.value === "bridge" || aiRequestMode.value === "direct" ? aiRequestMode.value : "auto";
-  });
-  aiBridgeRefresh.addEventListener("click", () => {
-    state.bridgeStatus = null;
-    renderBridgeStatus();
-    postMessage2({ type: "check-ai-bridge" });
-  });
-  aiCopyDiagnostic.addEventListener("click", async () => {
-    if (!currentAiDiagnostic) return;
-    const diagnostic = aiDiagnosticText(currentAiDiagnostic);
-    try {
-      if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable");
-      await navigator.clipboard.writeText(diagnostic);
-    } catch {
-      const input = document.createElement("textarea");
-      input.value = diagnostic;
-      input.style.position = "fixed";
-      input.style.opacity = "0";
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand("copy");
-      input.remove();
-    }
-    aiCopyDiagnostic.textContent = "\u5DF2\u590D\u5236";
-  });
-  aiFetchModels.addEventListener("click", () => {
-    const provider = updateActiveProviderFromForm();
-    if (!provider) return;
-    aiFetchModels.disabled = true;
-    aiConnectionResult.textContent = "\u6B63\u5728\u8FDE\u63A5\u5E76\u83B7\u53D6\u6A21\u578B\u2026";
-    renderAiDiagnostic();
-    postMessage2({
-      type: "list-ai-models",
-      provider,
-      requestMode: state.aiSettings?.requestMode,
-      ...state.apiKeyDrafts[provider.id]?.trim() ? { apiKey: state.apiKeyDrafts[provider.id].trim() } : {}
-    });
-  });
-  aiSaveConnection.addEventListener("click", () => {
-    const provider = updateActiveProviderFromForm();
-    if (!provider) return;
-    persistAiSettings();
-    aiConnectionResult.textContent = "\u6B63\u5728\u4FDD\u5B58\u670D\u52A1\u914D\u7F6E\u2026";
-  });
-  aiPromptLibrary.addEventListener("change", () => renderPromptEditor(aiPromptLibrary.value));
-  aiPromptNew.addEventListener("click", () => {
-    if (!state.aiSettings) return;
-    const prompt = { id: uniqueId("prompt"), name: "\u65B0\u63D0\u793A\u8BCD", content: "\u8BF7\u6839\u636E\u8BBE\u8BA1\u56FE\u7684\u5185\u5BB9\u548C\u7528\u9014\u751F\u6210\u7B80\u6D01\u7684\u82F1\u6587 kebab-case \u6587\u4EF6\u540D\u3002" };
-    state.aiSettings.prompts.push(prompt);
-    renderPromptEditor(prompt.id);
-  });
-  aiPromptDelete.addEventListener("click", () => {
-    const settings = state.aiSettings;
-    if (!settings || settings.prompts.length <= 1) return;
-    const id = aiPromptLibrary.value;
-    settings.prompts = settings.prompts.filter((prompt) => prompt.id !== id);
-    if (settings.strategy.type === "prompt" && settings.strategy.id === id) {
-      settings.strategy = { type: "prompt", id: settings.prompts[0].id };
-    }
-    persistAiSettings();
-    renderPromptEditor();
-  });
-  aiPromptImport.addEventListener("click", () => aiPromptFile.click());
-  aiPromptFile.addEventListener("change", async () => {
-    try {
-      const imported = await importedText(aiPromptFile, 2e4);
-      if (!imported || !state.aiSettings) return;
-      let name = imported.name;
-      let content = imported.content;
-      if (aiPromptFile.files?.[0]?.name.toLowerCase().endsWith(".json")) {
-        const parsed = JSON.parse(imported.content);
-        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-          const record = parsed;
-          if (typeof record.name === "string") name = record.name;
-          if (typeof record.content === "string") content = record.content;
-        }
-      }
-      const prompt = { id: uniqueId("prompt"), name: name.slice(0, 80), content: content.slice(0, 2e4) };
-      state.aiSettings.prompts.push(prompt);
-      renderPromptEditor(prompt.id);
-      setStatus("\u63D0\u793A\u8BCD\u5DF2\u5BFC\u5165\uFF0C\u8BF7\u786E\u8BA4\u540E\u4FDD\u5B58", "success");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error), "error");
-    } finally {
-      aiPromptFile.value = "";
-    }
-  });
-  aiSavePrompt.addEventListener("click", () => {
-    const settings = state.aiSettings;
-    const prompt = settings?.prompts.find((item) => item.id === aiPromptLibrary.value);
-    if (!settings || !prompt || !aiPromptContent.value.trim()) return;
-    prompt.name = aiPromptName.value.trim() || "\u672A\u547D\u540D\u63D0\u793A\u8BCD";
-    prompt.content = aiPromptContent.value.slice(0, 2e4);
-    persistAiSettings();
-    renderPromptEditor(prompt.id);
-  });
-  aiSkillLibrary.addEventListener("change", () => renderSkillEditor(aiSkillLibrary.value));
-  aiSkillUpload.addEventListener("click", () => aiSkillFile.click());
-  aiSkillFile.addEventListener("change", async () => {
-    try {
-      const imported = await importedText(aiSkillFile, 64e3);
-      if (!imported || !state.aiSettings) return;
-      const skill = {
-        id: uniqueId("skill"),
-        name: imported.name.slice(0, 100),
-        content: imported.content
-      };
-      state.aiSettings.skills.push(skill);
-      renderSkillEditor(skill.id);
-      setStatus("Skill \u5DF2\u8F7D\u5165\uFF0C\u8BF7\u786E\u8BA4\u540E\u4FDD\u5B58", "success");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error), "error");
-    } finally {
-      aiSkillFile.value = "";
-    }
-  });
-  aiSkillDelete.addEventListener("click", () => {
-    const settings = state.aiSettings;
-    if (!settings) return;
-    const id = aiSkillLibrary.value;
-    settings.skills = settings.skills.filter((skill) => skill.id !== id);
-    if (settings.strategy.type === "skill" && settings.strategy.id === id) {
-      settings.strategy = { type: "prompt", id: settings.prompts[0].id };
-    }
-    persistAiSettings();
-    renderSkillEditor();
-  });
-  aiSaveSkill.addEventListener("click", () => {
-    const settings = state.aiSettings;
-    const skill = settings?.skills.find((item) => item.id === aiSkillLibrary.value);
-    if (!settings || !skill || !aiSkillContent.value.trim()) return;
-    skill.name = aiSkillName.value.trim() || "\u672A\u547D\u540D Skill";
-    skill.content = aiSkillContent.value.slice(0, 64e3);
-    persistAiSettings();
-    renderSkillEditor(skill.id);
-  });
-  aiServiceSelect.addEventListener("change", () => {
-    const settings = state.aiSettings;
-    const provider = settings?.providers.find((item) => item.id === aiServiceSelect.value);
-    if (!settings || !provider) return;
-    settings.activeProviderId = provider.id;
-    renderAiMainControls();
-    persistAiSettings();
-    setStatus(`\u5DF2\u5207\u6362\u5230 ${provider.name}${provider.model ? ` \xB7 ${provider.model}` : ""}`, "success");
-  });
-  aiStrategySelect.addEventListener("change", () => {
-    if (!state.aiSettings) return;
-    const [type, id] = aiStrategySelect.value.split(":", 2);
-    if ((type === "prompt" || type === "skill") && id) {
-      state.aiSettings.strategy = { type, id };
-      persistAiSettings();
-    }
-  });
-  aiAnalyzeButton.addEventListener("click", () => {
-    if (state.aiBusy) {
-      if (state.aiProgress) {
-        state.aiProgress.phase = "cancelling";
-        state.aiProgress.phaseStartedAt = Date.now();
-      }
-      render();
-      setStatus("\u6B63\u5728\u505C\u6B62 AI \u5206\u6790\uFF0C\u5DF2\u5B8C\u6210\u7684\u540D\u79F0\u4F1A\u4FDD\u7559\u2026");
-      postMessage2({ type: "cancel-ai-analysis" });
-      return;
-    }
-    const provider = activeAiProvider();
-    if (!provider?.baseUrl || !provider.keyConfigured || !provider.model) {
-      openAiSettings();
-      aiConnectionResult.textContent = "\u8BF7\u5148\u5B8C\u6210 Base URL\u3001API Key \u548C\u89C6\u89C9\u6A21\u578B\u914D\u7F6E\u3002";
-      return;
-    }
-    state.aiSuggestions = {};
-    state.aiBusy = true;
-    state.aiProgress = {
-      phase: "starting",
-      total: state.items.length,
-      batch: 1,
-      batchCount: 0,
-      batchPrepared: 0,
-      batchSize: 0,
-      prepared: 0,
-      named: 0,
-      failed: 0,
-      failedBatchCount: 0,
-      model: provider.model,
-      phaseStartedAt: Date.now(),
-      message: ""
-    };
-    renderAiDiagnostic();
-    render();
-    setStatus("AI \u5206\u6790\u5DF2\u542F\u52A8\uFF0C\u8FDB\u5EA6\u4F1A\u6309\u6279\u6B21\u5B9E\u65F6\u66F4\u65B0\u2026");
-    postMessage2({ type: "analyze-selection" });
-  });
-  aiProgressDiagnostic.addEventListener("click", () => {
-    const diagnostic = state.aiProgress?.diagnostic;
-    if (!diagnostic) return;
-    renderAiDiagnostic(diagnostic);
-    openAiSettings("connection");
-    aiRequestDiagnostic.open = true;
-  });
-  aiClearButton.addEventListener("click", () => {
-    state.aiSuggestions = {};
-    render();
-    setStatus("\u5DF2\u6E05\u9664 AI \u547D\u540D\u7ED3\u679C", "success");
-  });
   formatSelect.addEventListener("change", () => {
     updateConfig({ format: formatSelect.value });
   });
@@ -3051,8 +1989,7 @@
     setStatus("\u6B63\u5728\u4ECE Figma \u5BFC\u51FA\u8D44\u6E90\u2026");
     postMessage2({
       type: "export",
-      config: state.config,
-      ...Object.keys(state.aiSuggestions).length ? { semanticNames: state.aiSuggestions } : {}
+      config: state.config
     });
   });
   window.onmessage = (event) => {
@@ -3061,212 +1998,52 @@
       return;
     }
     if (message.type === "selection") {
-      const previousSelection = state.items.map((item) => item.id).join("|");
-      const nextSelection = message.items.map((item) => item.id).join("|");
-      if (previousSelection !== nextSelection) {
-        state.aiSuggestions = {};
-        if (state.aiBusy) {
-          if (state.aiProgress) {
-            state.aiProgress.phase = "cancelling";
-            state.aiProgress.phaseStartedAt = Date.now();
-          }
-          postMessage2({ type: "cancel-ai-analysis" });
-        } else {
-          state.aiProgress = null;
-        }
-      }
+      reconcilePreviewState(message.items);
       state.items = message.items;
       state.ignoredCount = message.ignoredCount;
       render();
+      return;
+    }
+    if (message.type === "preview-complete") {
+      state.previewActive.delete(message.nodeId);
+      state.previewLoading.delete(message.nodeId);
+      if (!state.items.some((item) => item.id === message.nodeId)) {
+        pumpPreviewRequests();
+        return;
+      }
+      const exactBuffer = message.bytes.buffer.slice(
+        message.bytes.byteOffset,
+        message.bytes.byteOffset + message.bytes.byteLength
+      );
+      const previousUrl = state.previewUrls.get(message.nodeId);
+      if (previousUrl) {
+        URL.revokeObjectURL(previousUrl);
+      }
+      state.previewUrls.set(
+        message.nodeId,
+        URL.createObjectURL(new Blob([exactBuffer], { type: "image/png" }))
+      );
+      state.previewErrors.delete(message.nodeId);
+      pumpPreviewRequests();
+      renderPreview();
+      return;
+    }
+    if (message.type === "preview-error") {
+      state.previewActive.delete(message.nodeId);
+      state.previewLoading.delete(message.nodeId);
+      if (!state.items.some((item) => item.id === message.nodeId)) {
+        pumpPreviewRequests();
+        return;
+      }
+      state.previewErrors.set(message.nodeId, message.message);
+      pumpPreviewRequests();
+      renderPreview();
       return;
     }
     if (message.type === "settings") {
       state.config = mergeSavedConfig(message.config);
       syncControls();
       render();
-      return;
-    }
-    if (message.type === "ai-settings") {
-      state.aiSettings = message.settings;
-      state.apiKeyDrafts = {};
-      renderTokens();
-      renderAiSettingsEditors();
-      render();
-      if (!aiSettingsView.hidden) aiConnectionResult.textContent = "\u670D\u52A1\u914D\u7F6E\u5DF2\u4FDD\u5B58\u3002";
-      return;
-    }
-    if (message.type === "ai-bridge-status") {
-      state.bridgeStatus = message.status;
-      renderBridgeStatus();
-      return;
-    }
-    if (message.type === "ai-models") {
-      state.modelOptions[message.providerId] = message.models;
-      const provider = state.aiSettings?.providers.find((item) => item.id === message.providerId);
-      if (provider) {
-        provider.resolvedApiFormat = message.resolvedApiFormat;
-        if (!provider.model && message.models.length === 1) {
-          provider.model = message.models[0].id;
-        }
-        renderSettingsModels(provider);
-      }
-      aiFetchModels.disabled = false;
-      renderAiDiagnostic();
-      aiConnectionResult.textContent = message.models.length ? `\u8FDE\u63A5\u6210\u529F\uFF1A\u901A\u8FC7${message.transport === "bridge" ? "\u672C\u5730\u670D\u52A1" : "\u76F4\u63A5\u8FDE\u63A5"}\u83B7\u53D6\u5230 ${message.models.length} \u4E2A\u6A21\u578B\u3002` : `\u8FDE\u63A5\u6210\u529F\uFF1A${resolvedFormatLabel(message.resolvedApiFormat)}\uFF0C\u4F46\u6CA1\u6709\u53D1\u73B0\u53EF\u7528\u6A21\u578B\uFF0C\u53EF\u624B\u52A8\u586B\u5199\u6A21\u578B ID\u3002`;
-      renderAiMainControls();
-      return;
-    }
-    if (message.type === "ai-analysis-started") {
-      state.aiBusy = true;
-      state.aiProgress = {
-        phase: "starting",
-        total: message.total,
-        batch: 1,
-        batchCount: message.batchCount,
-        batchPrepared: 0,
-        batchSize: 0,
-        prepared: 0,
-        named: 0,
-        failed: 0,
-        failedBatchCount: 0,
-        model: message.model,
-        phaseStartedAt: Date.now(),
-        message: ""
-      };
-      render();
-      setStatus(`AI \u5C06\u5206 ${message.batchCount} \u6279\u5206\u6790 ${message.total} \u4E2A\u6587\u4EF6\u2026`);
-      return;
-    }
-    if (message.type === "ai-analysis-progress") {
-      if (!state.aiBusy || !state.aiProgress) return;
-      const phaseChanged = state.aiProgress.phase !== message.phase || state.aiProgress.batch !== message.batch;
-      Object.assign(state.aiProgress, {
-        phase: message.phase,
-        batch: message.batch,
-        batchCount: message.batchCount,
-        batchPrepared: message.batchPrepared,
-        batchSize: message.batchSize,
-        prepared: message.prepared,
-        named: message.named,
-        total: message.total,
-        ...phaseChanged ? { phaseStartedAt: Date.now() } : {}
-      });
-      renderAiProgress();
-      return;
-    }
-    if (message.type === "ai-analysis-batch-complete") {
-      if (!state.aiBusy || !state.aiProgress) return;
-      for (const suggestion of message.suggestions) {
-        state.aiSuggestions[suggestion.nodeId] = suggestion.name;
-      }
-      Object.assign(state.aiProgress, {
-        phase: "batch-complete",
-        batch: message.batch,
-        batchCount: message.batchCount,
-        named: message.named,
-        failed: message.failed,
-        total: message.total,
-        phaseStartedAt: Date.now()
-      });
-      render();
-      setStatus(`\u7B2C ${message.batch} / ${message.batchCount} \u6279\u5B8C\u6210\uFF0C\u5DF2\u547D\u540D ${message.named} / ${message.total}`);
-      return;
-    }
-    if (message.type === "ai-analysis-batch-failed") {
-      if (!state.aiBusy || !state.aiProgress) return;
-      Object.assign(state.aiProgress, {
-        phase: "batch-failed",
-        batch: message.batch,
-        batchCount: message.batchCount,
-        named: message.named,
-        failed: message.failed,
-        total: message.total,
-        failedBatchCount: state.aiProgress.failedBatchCount + 1,
-        phaseStartedAt: Date.now(),
-        message: message.message,
-        diagnostic: message.diagnostic || state.aiProgress.diagnostic
-      });
-      if (message.diagnostic) renderAiDiagnostic(message.diagnostic);
-      render();
-      setStatus(`\u7B2C ${message.batch} \u6279\u5931\u8D25\uFF0C\u6B63\u5728\u7EE7\u7EED\uFF1B\u5DF2\u4FDD\u7559 ${message.named} \u4E2A\u540D\u79F0`, "warning");
-      return;
-    }
-    if (message.type === "ai-analysis-complete") {
-      state.aiSuggestions = Object.fromEntries(message.suggestions.map((suggestion) => [suggestion.nodeId, suggestion.name]));
-      state.aiBusy = false;
-      const named = message.suggestions.length;
-      const total = state.aiProgress?.total || state.items.length;
-      state.aiProgress = {
-        ...state.aiProgress || {
-          total,
-          batch: 0,
-          batchCount: 0,
-          batchPrepared: 0,
-          batchSize: 0,
-          prepared: total,
-          model: activeAiProvider()?.model || "",
-          phaseStartedAt: Date.now(),
-          message: "",
-          named: 0,
-          failed: 0,
-          failedBatchCount: 0,
-          phase: "complete"
-        },
-        phase: named > 0 ? "complete" : "error",
-        batch: state.aiProgress?.batchCount || 0,
-        named,
-        failed: message.failedNodeIds.length,
-        failedBatchCount: message.failedBatchCount,
-        phaseStartedAt: Date.now(),
-        message: message.message || "",
-        diagnostic: message.diagnostic || state.aiProgress?.diagnostic
-      };
-      if (message.diagnostic) renderAiDiagnostic(message.diagnostic);
-      render();
-      if (named === 0) {
-        setStatus("AI \u672A\u751F\u6210\u6709\u6548\u540D\u79F0\uFF0C\u53EF\u67E5\u770B\u9519\u8BEF\u8BE6\u60C5\u540E\u68C0\u67E5\u6A21\u578B\u80FD\u529B", "error");
-      } else {
-        const failed = message.failedNodeIds.length ? `\uFF0C${message.failedNodeIds.length} \u4E2A\u672A\u80FD\u547D\u540D` : "";
-        setStatus(`AI \u5DF2\u751F\u6210 ${named} / ${total} \u4E2A\u8BED\u4E49\u540D\u79F0${failed}`, failed ? "warning" : "success");
-      }
-      return;
-    }
-    if (message.type === "ai-analysis-cancelled") {
-      const currentNodeIds = new Set(state.items.map((item) => item.id));
-      const currentSuggestions = message.suggestions.filter((suggestion) => currentNodeIds.has(suggestion.nodeId));
-      state.aiSuggestions = Object.fromEntries(currentSuggestions.map((suggestion) => [suggestion.nodeId, suggestion.name]));
-      state.aiBusy = false;
-      const named = currentSuggestions.length;
-      if (state.aiProgress) {
-        Object.assign(state.aiProgress, {
-          phase: "cancelled",
-          named,
-          failed: message.failedNodeIds.length,
-          total: message.total,
-          phaseStartedAt: Date.now()
-        });
-      }
-      render();
-      setStatus(named > 0 ? `\u5DF2\u53D6\u6D88\u5206\u6790\uFF0C\u5E76\u4FDD\u7559 ${named} \u4E2A\u8BED\u4E49\u540D\u79F0` : "\u5DF2\u53D6\u6D88 AI \u5206\u6790", "warning");
-      return;
-    }
-    if (message.type === "ai-error") {
-      const wasAnalyzing = state.aiBusy;
-      state.aiBusy = false;
-      aiFetchModels.disabled = false;
-      if (wasAnalyzing && state.aiProgress) {
-        Object.assign(state.aiProgress, {
-          phase: "error",
-          named: Object.keys(state.aiSuggestions).length,
-          phaseStartedAt: Date.now(),
-          message: message.message,
-          diagnostic: message.diagnostic || state.aiProgress.diagnostic
-        });
-      }
-      render();
-      setStatus(wasAnalyzing ? "AI \u5206\u6790\u672A\u5B8C\u6210\uFF0C\u53EF\u67E5\u770B\u9519\u8BEF\u8BE6\u60C5" : message.message, "error");
-      renderAiDiagnostic(message.diagnostic);
-      if (!aiSettingsView.hidden) aiConnectionResult.textContent = message.message;
       return;
     }
     if (message.type === "single-export-started") {
@@ -3332,10 +2109,6 @@
   syncControls();
   render();
   postMessage2({ type: "ui-ready" });
-  window.setInterval(() => {
-    if (state.aiBusy) renderAiProgress();
-  }, 1e3);
-  window.setInterval(() => postMessage2({ type: "check-ai-bridge" }), 6e4);
 })();
 
 </script>

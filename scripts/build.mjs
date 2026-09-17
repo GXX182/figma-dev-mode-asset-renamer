@@ -1,5 +1,5 @@
 import { build, context } from "esbuild";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,7 +24,6 @@ const packageVersion = safeDirectorySegment(packageJson.version, "package.json v
 const releaseName = `${pluginId}_${packageVersion}`;
 const releaseDirectory = resolve(distDirectory, releaseName);
 const releaseAssetsDirectory = resolve(releaseDirectory, "dist");
-const releaseServerDirectory = resolve(releaseDirectory, "server");
 const buildAssetsDirectory = watchMode ? distDirectory : releaseAssetsDirectory;
 
 const sharedOptions = {
@@ -81,22 +80,13 @@ function writeReleasePackage() {
     main: "dist/code.js",
     ui: "dist/ui.html"
   };
-  cpSync(resolve(projectRoot, "server"), releaseServerDirectory, { recursive: true });
   writeFileSync(
     resolve(releaseDirectory, "manifest.json"),
     `${JSON.stringify(releaseManifest, null, 2)}\n`,
     "utf8"
   );
 
-  const declaredFiles = [
-    releaseManifest.main,
-    releaseManifest.ui,
-    "server/server.mjs",
-    "server/service.mjs",
-    "server/start-server.mjs",
-    "server/start-server.cmd",
-    "server/start-server.ps1"
-  ]
+  const declaredFiles = [releaseManifest.main, releaseManifest.ui]
     .map((relativePath) => resolve(releaseDirectory, relativePath));
   if (declaredFiles.some((filePath) => !existsSync(filePath))) {
     throw new Error("发布包校验失败：manifest.json 引用的构建文件不存在");
