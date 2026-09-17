@@ -122,36 +122,6 @@
         padding-top: 0;
       }
 
-      .selection-card {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        min-height: 58px;
-        padding: 10px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: var(--surface);
-      }
-
-      .selection-number {
-        display: grid;
-        flex: 0 0 34px;
-        width: 34px;
-        height: 34px;
-        place-items: center;
-        border-radius: 7px;
-        background: var(--brand);
-        color: var(--brand-text);
-        font-size: 14px;
-        font-weight: 700;
-      }
-
-      .selection-title {
-        line-height: 18px;
-        font-weight: 600;
-      }
-
-      .selection-detail,
       .helper,
       .template-error {
         color: var(--muted);
@@ -514,6 +484,30 @@
         opacity: 1;
       }
 
+      .preview-download-button.is-downloaded {
+        color: var(--success);
+      }
+
+      .preview-download-button.is-downloaded .preview-download-icon--check {
+        display: block;
+      }
+
+      .preview-download-button.is-downloaded .preview-download-icon--download {
+        display: none;
+      }
+
+      .preview-download-button.is-downloaded:hover:not(:disabled) {
+        color: var(--brand);
+      }
+
+      .preview-download-button.is-downloaded:hover:not(:disabled) .preview-download-icon--check {
+        display: none;
+      }
+
+      .preview-download-button.is-downloaded:hover:not(:disabled) .preview-download-icon--download {
+        display: block;
+      }
+
       .preview-download-button svg {
         width: 16px;
         height: 16px;
@@ -523,6 +517,11 @@
         stroke-linecap: round;
         stroke-linejoin: round;
         stroke-width: 1.55;
+      }
+
+      .preview-download-icon--check,
+      .preview-download-icon--download {
+        display: block;
       }
 
       .preview-download-spinner {
@@ -643,14 +642,6 @@
 
       <div class="content">
         <section class="settings">
-          <div class="selection-card">
-            <span class="selection-number" id="selection-count">0</span>
-            <div>
-              <p class="selection-title">当前选择</p>
-              <p class="selection-detail" id="selection-detail">请在画布中选择需要下载的图片或图层</p>
-            </div>
-          </div>
-
           <section class="section">
             <h2>导出设置</h2>
             <div class="grid-2">
@@ -1581,7 +1572,8 @@
     previewLoading: /* @__PURE__ */ new Set(),
     previewQueue: [],
     previewActive: /* @__PURE__ */ new Set(),
-    previewErrors: /* @__PURE__ */ new Map()
+    previewErrors: /* @__PURE__ */ new Map(),
+    downloadedNodeIds: /* @__PURE__ */ new Set()
   };
   function element(id) {
     const found = document.getElementById(id);
@@ -1590,8 +1582,6 @@
     }
     return found;
   }
-  var selectionCount = element("selection-count");
-  var selectionDetail = element("selection-detail");
   var formatSelect = element("format");
   var scaleGroup = element("scale-group");
   var templateInput = element("template");
@@ -1652,16 +1642,6 @@
     }
     return null;
   }
-  function renderSelection() {
-    selectionCount.textContent = String(state.items.length);
-    if (state.items.length === 0) {
-      selectionDetail.textContent = "\u8BF7\u5728\u753B\u5E03\u4E2D\u9009\u62E9\u9700\u8981\u4E0B\u8F7D\u7684\u56FE\u7247\u6216\u56FE\u5C42";
-    } else if (state.ignoredCount > 0) {
-      selectionDetail.textContent = `\u5DF2\u8BC6\u522B ${state.items.length} \u4E2A\uFF0C\u5FFD\u7565 ${state.ignoredCount} \u4E2A\u4E0D\u53EF\u5BFC\u51FA\u5BF9\u8C61`;
-    } else {
-      selectionDetail.textContent = `\u5DF2\u8BC6\u522B ${state.items.length} \u4E2A\u53EF\u5BFC\u51FA\u5BF9\u8C61`;
-    }
-  }
   function previewNames() {
     return buildDownloadNames(
       state.items,
@@ -1714,12 +1694,37 @@
         state.previewErrors.delete(nodeId);
       }
     }
+    for (const nodeId of state.downloadedNodeIds) {
+      if (!activeIds.has(nodeId)) {
+        state.downloadedNodeIds.delete(nodeId);
+      }
+    }
     for (const nodeId of state.collapsedPreviews) {
       if (!activeIds.has(nodeId)) {
         state.collapsedPreviews.delete(nodeId);
       }
     }
     pumpPreviewRequests();
+  }
+  function syncDownloadButton(button, nodeId, name) {
+    const downloading = state.singleExportNodeId === nodeId;
+    const downloaded = state.downloadedNodeIds.has(nodeId) && !downloading;
+    button.classList.toggle("is-loading", downloading);
+    button.classList.toggle("is-downloaded", downloaded);
+    button.disabled = state.busy || Boolean(namingError());
+    const label = downloading ? `\u6B63\u5728\u4E0B\u8F7D ${name}` : downloaded ? `\u5DF2\u4E0B\u8F7D ${name}\uFF0C\u518D\u6B21\u70B9\u51FB\u53EF\u91CD\u65B0\u4E0B\u8F7D` : `\u5355\u72EC\u4E0B\u8F7D ${name}`;
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    button.innerHTML = downloading ? '<svg class="preview-download-spinner" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6.5"></circle></svg>' : downloaded ? '<svg class="preview-download-icon preview-download-icon--check" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m5 10.25 3.15 3.1L15 6.65"></path></svg><svg class="preview-download-icon preview-download-icon--download" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 3.25v8.5m0 0 3-3m-3 3-3-3M4.25 15.75h11.5"></path></svg>' : '<svg class="preview-download-icon preview-download-icon--download" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 3.25v8.5m0 0 3-3m-3 3-3-3M4.25 15.75h11.5"></path></svg>';
+  }
+  function refreshDownloadButtons() {
+    previewList.querySelectorAll(".preview-download-button").forEach((button) => {
+      const nodeId = button.dataset.nodeId;
+      const name = button.dataset.downloadName;
+      if (nodeId && name) {
+        syncDownloadButton(button, nodeId, name);
+      }
+    });
   }
   function renderPreview() {
     const error = namingError();
@@ -1729,9 +1734,9 @@
     if (state.items.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty-state";
-      empty.textContent = "\u9009\u4E2D\u56FE\u5C42\u540E\u5C06\u5728\u8FD9\u91CC\u9884\u89C8\u6587\u4EF6\u540D";
+      empty.textContent = "\u5728\u753B\u5E03\u4E2D\u9009\u62E9\u9700\u8981\u4E0B\u8F7D\u7684\u56FE\u7247\u6216\u56FE\u5C42";
       previewList.append(empty);
-      previewSummary.textContent = "0 \u4E2A\u6587\u4EF6";
+      previewSummary.textContent = state.ignoredCount > 0 ? `0 \u4E2A\u6587\u4EF6 \xB7 \u5FFD\u7565 ${state.ignoredCount} \u4E2A` : "0 \u4E2A\u6587\u4EF6";
       return;
     }
     const names = previewNames();
@@ -1812,20 +1817,17 @@
         toggleButton.setAttribute("aria-label", `${nextCollapsed ? "\u5C55\u5F00" : "\u6536\u8D77"} ${names[index]} \u7684\u56FE\u7247\u9884\u89C8`);
         toggleButton.title = nextCollapsed ? "\u5C55\u5F00\u56FE\u7247\u9884\u89C8" : "\u6536\u8D77\u56FE\u7247\u9884\u89C8";
       });
-      const downloading = state.singleExportNodeId === nodeId;
       const downloadButton = document.createElement("button");
       downloadButton.type = "button";
       downloadButton.className = "preview-download-button";
-      downloadButton.classList.toggle("is-loading", downloading);
-      downloadButton.disabled = state.busy || Boolean(error);
-      downloadButton.title = downloading ? `\u6B63\u5728\u4E0B\u8F7D ${names[index]}` : `\u5355\u72EC\u4E0B\u8F7D ${names[index]}`;
-      downloadButton.setAttribute("aria-label", downloadButton.title);
-      downloadButton.innerHTML = downloading ? '<svg class="preview-download-spinner" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6.5"></circle></svg>' : '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 3.25v8.5m0 0 3-3m-3 3-3-3M4.25 15.75h11.5"></path></svg>';
+      downloadButton.dataset.nodeId = nodeId;
+      downloadButton.dataset.downloadName = names[index];
       downloadButton.addEventListener("click", () => {
         if (state.busy || namingError()) return;
         state.busy = true;
         state.singleExportNodeId = nodeId;
-        render();
+        refreshDownloadButtons();
+        renderActions();
         setStatus(`\u6B63\u5728\u5355\u72EC\u5BFC\u51FA ${names[index]}\u2026`);
         postMessage2({
           type: "export-one",
@@ -1833,6 +1835,7 @@
           config: state.config
         });
       });
+      syncDownloadButton(downloadButton, nodeId, names[index]);
       rowHeader.append(fileMeta, downloadButton);
       row.append(rowHeader, previewBody);
       previewList.append(row);
@@ -1844,7 +1847,7 @@
       more.textContent = `\u8FD8\u6709 ${names.length - visibleCount} \u4E2A\u6587\u4EF6\u672A\u5C55\u5F00`;
       previewList.append(more);
     }
-    previewSummary.textContent = `${names.length} \u4E2A\u6587\u4EF6`;
+    previewSummary.textContent = state.ignoredCount > 0 ? `${names.length} \u4E2A\u6587\u4EF6 \xB7 \u5FFD\u7565 ${state.ignoredCount} \u4E2A` : `${names.length} \u4E2A\u6587\u4EF6`;
   }
   function renderActions() {
     const isVectorFormat = state.config.format === "SVG" || state.config.format === "PDF";
@@ -1872,12 +1875,12 @@
     });
   }
   function render() {
-    renderSelection();
     renderPreview();
     renderActions();
   }
   function updateConfig(patch) {
     state.config = { ...state.config, ...patch };
+    state.downloadedNodeIds.clear();
     saveConfig();
     syncControls();
     render();
@@ -1975,6 +1978,7 @@
   lowercaseInput.addEventListener("change", () => updateConfig({ lowercase: lowercaseInput.checked }));
   resetButton.addEventListener("click", () => {
     state.config = { ...defaultConfig };
+    state.downloadedNodeIds.clear();
     saveConfig();
     syncControls();
     render();
@@ -2049,27 +2053,31 @@
     if (message.type === "single-export-started") {
       state.busy = true;
       state.singleExportNodeId = message.nodeId;
-      render();
+      refreshDownloadButtons();
+      renderActions();
       setStatus(`\u6B63\u5728\u5355\u72EC\u5BFC\u51FA ${message.name}\u2026`);
       return;
     }
     if (message.type === "single-export-complete") {
       try {
         downloadFile(message.file);
+        state.downloadedNodeIds.add(message.nodeId);
         setStatus(`\u5DF2\u4E0B\u8F7D ${message.file.name}`, "success");
       } catch (error) {
         setStatus(`\u4E0B\u8F7D\u5931\u8D25\uFF1A${error instanceof Error ? error.message : String(error)}`, "error");
       } finally {
         state.busy = false;
         state.singleExportNodeId = null;
-        render();
+        refreshDownloadButtons();
+        renderActions();
       }
       return;
     }
     if (message.type === "single-export-error") {
       state.busy = false;
       state.singleExportNodeId = null;
-      render();
+      refreshDownloadButtons();
+      renderActions();
       setStatus(message.message, "error");
       return;
     }

@@ -122,36 +122,6 @@
         padding-top: 0;
       }
 
-      .selection-card {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        min-height: 58px;
-        padding: 10px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: var(--surface);
-      }
-
-      .selection-number {
-        display: grid;
-        flex: 0 0 34px;
-        width: 34px;
-        height: 34px;
-        place-items: center;
-        border-radius: 7px;
-        background: var(--brand);
-        color: var(--brand-text);
-        font-size: 14px;
-        font-weight: 700;
-      }
-
-      .selection-title {
-        line-height: 18px;
-        font-weight: 600;
-      }
-
-      .selection-detail,
       .helper,
       .template-error {
         color: var(--muted);
@@ -514,6 +484,30 @@
         opacity: 1;
       }
 
+      .preview-download-button.is-downloaded {
+        color: var(--success);
+      }
+
+      .preview-download-button.is-downloaded .preview-download-icon--check {
+        display: block;
+      }
+
+      .preview-download-button.is-downloaded .preview-download-icon--download {
+        display: none;
+      }
+
+      .preview-download-button.is-downloaded:hover:not(:disabled) {
+        color: var(--brand);
+      }
+
+      .preview-download-button.is-downloaded:hover:not(:disabled) .preview-download-icon--check {
+        display: none;
+      }
+
+      .preview-download-button.is-downloaded:hover:not(:disabled) .preview-download-icon--download {
+        display: block;
+      }
+
       .preview-download-button svg {
         width: 16px;
         height: 16px;
@@ -523,6 +517,11 @@
         stroke-linecap: round;
         stroke-linejoin: round;
         stroke-width: 1.55;
+      }
+
+      .preview-download-icon--check,
+      .preview-download-icon--download {
+        display: block;
       }
 
       .preview-download-spinner {
@@ -643,14 +642,6 @@
 
       <div class="content">
         <section class="settings">
-          <div class="selection-card">
-            <span class="selection-number" id="selection-count">0</span>
-            <div>
-              <p class="selection-title">当前选择</p>
-              <p class="selection-detail" id="selection-detail">请在画布中选择需要下载的图片或图层</p>
-            </div>
-          </div>
-
           <section class="section">
             <h2>导出设置</h2>
             <div class="grid-2">

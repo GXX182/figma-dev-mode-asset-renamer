@@ -33,6 +33,7 @@ const state: {
   previewQueue: string[];
   previewActive: Set<string>;
   previewErrors: Map<string, string>;
+  downloadedNodeIds: Set<string>;
 } = {
   items: [],
   ignoredCount: 0,
@@ -44,7 +45,8 @@ const state: {
   previewLoading: new Set(),
   previewQueue: [],
   previewActive: new Set(),
-  previewErrors: new Map()
+  previewErrors: new Map(),
+  downloadedNodeIds: new Set()
 };
 
 function element<T extends HTMLElement>(id: string): T {
@@ -55,8 +57,6 @@ function element<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
-const selectionCount = element<HTMLSpanElement>("selection-count");
-const selectionDetail = element<HTMLParagraphElement>("selection-detail");
 const formatSelect = element<HTMLSelectElement>("format");
 const scaleGroup = element<HTMLDivElement>("scale-group");
 const templateInput = element<HTMLInputElement>("template");
@@ -132,17 +132,6 @@ function namingError(): string | null {
   return null;
 }
 
-function renderSelection(): void {
-  selectionCount.textContent = String(state.items.length);
-  if (state.items.length === 0) {
-    selectionDetail.textContent = "请在画布中选择需要下载的图片或图层";
-  } else if (state.ignoredCount > 0) {
-    selectionDetail.textContent = `已识别 ${state.items.length} 个，忽略 ${state.ignoredCount} 个不可导出对象`;
-  } else {
-    selectionDetail.textContent = `已识别 ${state.items.length} 个可导出对象`;
-  }
-}
-
 function previewNames(): string[] {
   return buildDownloadNames(
     state.items,
@@ -198,12 +187,48 @@ function reconcilePreviewState(items: ExportableNodeInfo[]): void {
       state.previewErrors.delete(nodeId);
     }
   }
+  for (const nodeId of state.downloadedNodeIds) {
+    if (!activeIds.has(nodeId)) {
+      state.downloadedNodeIds.delete(nodeId);
+    }
+  }
   for (const nodeId of state.collapsedPreviews) {
     if (!activeIds.has(nodeId)) {
       state.collapsedPreviews.delete(nodeId);
     }
   }
   pumpPreviewRequests();
+}
+
+function syncDownloadButton(button: HTMLButtonElement, nodeId: string, name: string): void {
+  const downloading = state.singleExportNodeId === nodeId;
+  const downloaded = state.downloadedNodeIds.has(nodeId) && !downloading;
+  button.classList.toggle("is-loading", downloading);
+  button.classList.toggle("is-downloaded", downloaded);
+  button.disabled = state.busy || Boolean(namingError());
+
+  const label = downloading
+    ? `正在下载 ${name}`
+    : downloaded
+      ? `已下载 ${name}，再次点击可重新下载`
+      : `单独下载 ${name}`;
+  button.title = label;
+  button.setAttribute("aria-label", label);
+  button.innerHTML = downloading
+    ? '<svg class="preview-download-spinner" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6.5"></circle></svg>'
+    : downloaded
+      ? '<svg class="preview-download-icon preview-download-icon--check" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m5 10.25 3.15 3.1L15 6.65"></path></svg><svg class="preview-download-icon preview-download-icon--download" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 3.25v8.5m0 0 3-3m-3 3-3-3M4.25 15.75h11.5"></path></svg>'
+      : '<svg class="preview-download-icon preview-download-icon--download" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 3.25v8.5m0 0 3-3m-3 3-3-3M4.25 15.75h11.5"></path></svg>';
+}
+
+function refreshDownloadButtons(): void {
+  previewList.querySelectorAll<HTMLButtonElement>(".preview-download-button").forEach((button) => {
+    const nodeId = button.dataset.nodeId;
+    const name = button.dataset.downloadName;
+    if (nodeId && name) {
+      syncDownloadButton(button, nodeId, name);
+    }
+  });
 }
 
 function renderPreview(): void {
@@ -215,9 +240,11 @@ function renderPreview(): void {
   if (state.items.length === 0) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "选中图层后将在这里预览文件名";
+    empty.textContent = "在画布中选择需要下载的图片或图层";
     previewList.append(empty);
-    previewSummary.textContent = "0 个文件";
+    previewSummary.textContent = state.ignoredCount > 0
+      ? `0 个文件 · 忽略 ${state.ignoredCount} 个`
+      : "0 个文件";
     return;
   }
 
@@ -311,22 +338,17 @@ function renderPreview(): void {
       toggleButton.title = nextCollapsed ? "展开图片预览" : "收起图片预览";
     });
 
-    const downloading = state.singleExportNodeId === nodeId;
     const downloadButton = document.createElement("button");
     downloadButton.type = "button";
     downloadButton.className = "preview-download-button";
-    downloadButton.classList.toggle("is-loading", downloading);
-    downloadButton.disabled = state.busy || Boolean(error);
-    downloadButton.title = downloading ? `正在下载 ${names[index]}` : `单独下载 ${names[index]}`;
-    downloadButton.setAttribute("aria-label", downloadButton.title);
-    downloadButton.innerHTML = downloading
-      ? '<svg class="preview-download-spinner" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6.5"></circle></svg>'
-      : '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 3.25v8.5m0 0 3-3m-3 3-3-3M4.25 15.75h11.5"></path></svg>';
+    downloadButton.dataset.nodeId = nodeId;
+    downloadButton.dataset.downloadName = names[index];
     downloadButton.addEventListener("click", () => {
       if (state.busy || namingError()) return;
       state.busy = true;
       state.singleExportNodeId = nodeId;
-      render();
+      refreshDownloadButtons();
+      renderActions();
       setStatus(`正在单独导出 ${names[index]}…`);
       postMessage({
         type: "export-one",
@@ -334,6 +356,7 @@ function renderPreview(): void {
         config: state.config
       });
     });
+    syncDownloadButton(downloadButton, nodeId, names[index]);
 
     rowHeader.append(fileMeta, downloadButton);
     row.append(rowHeader, previewBody);
@@ -347,7 +370,9 @@ function renderPreview(): void {
     more.textContent = `还有 ${names.length - visibleCount} 个文件未展开`;
     previewList.append(more);
   }
-  previewSummary.textContent = `${names.length} 个文件`;
+  previewSummary.textContent = state.ignoredCount > 0
+    ? `${names.length} 个文件 · 忽略 ${state.ignoredCount} 个`
+    : `${names.length} 个文件`;
 }
 
 function renderActions(): void {
@@ -383,13 +408,13 @@ function renderActions(): void {
 }
 
 function render(): void {
-  renderSelection();
   renderPreview();
   renderActions();
 }
 
 function updateConfig(patch: Partial<ExportConfig>): void {
   state.config = { ...state.config, ...patch };
+  state.downloadedNodeIds.clear();
   saveConfig();
   syncControls();
   render();
@@ -496,6 +521,7 @@ lowercaseInput.addEventListener("change", () => updateConfig({ lowercase: lowerc
 
 resetButton.addEventListener("click", () => {
   state.config = { ...defaultConfig };
+  state.downloadedNodeIds.clear();
   saveConfig();
   syncControls();
   render();
@@ -577,7 +603,8 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
   if (message.type === "single-export-started") {
     state.busy = true;
     state.singleExportNodeId = message.nodeId;
-    render();
+    refreshDownloadButtons();
+    renderActions();
     setStatus(`正在单独导出 ${message.name}…`);
     return;
   }
@@ -585,13 +612,15 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
   if (message.type === "single-export-complete") {
     try {
       downloadFile(message.file);
+      state.downloadedNodeIds.add(message.nodeId);
       setStatus(`已下载 ${message.file.name}`, "success");
     } catch (error) {
       setStatus(`下载失败：${error instanceof Error ? error.message : String(error)}`, "error");
     } finally {
       state.busy = false;
       state.singleExportNodeId = null;
-      render();
+      refreshDownloadButtons();
+      renderActions();
     }
     return;
   }
@@ -599,7 +628,8 @@ window.onmessage = (event: MessageEvent<{ pluginMessage?: PluginToUiMessage }>) 
   if (message.type === "single-export-error") {
     state.busy = false;
     state.singleExportNodeId = null;
-    render();
+    refreshDownloadButtons();
+    renderActions();
     setStatus(message.message, "error");
     return;
   }
